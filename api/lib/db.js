@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
-// Reuse connection across warm serverless invocations
 let cached = global._mongoConnection ?? null;
 
-export async function connectDB() {
+async function connectDB() {
   if (cached && cached.conn) return cached.conn;
 
   if (!process.env.MONGODB_URI) {
@@ -16,14 +15,14 @@ export async function connectDB() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(process.env.MONGODB_URI, {
-        bufferCommands: false,
-        maxPoolSize: 10,
-      })
-      .then((m) => m);
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+      maxPoolSize: 10,
+    }).then(m => m);
   }
 
   cached.conn = await cached.promise;
   return cached.conn;
 }
+
+module.exports = { connectDB };
