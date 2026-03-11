@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Btn, Field, SectionHeader, EmptyState } from "../components/UI";
-import Modal from "../components/Modal";
 import Icon from "../components/Icon";
-import { genId } from "../utils/storage";
 import { ACCENT_COLORS } from "../data/defaultData";
 
 function PlanCard({ plan, accent, adminMode, onRemove }) {
@@ -62,18 +60,23 @@ function PlanCard({ plan, accent, adminMode, onRemove }) {
   );
 }
 
-export default function PricingModule({ plans, setPlans, adminMode }) {
+export default function PricingModule({ data: plans = [], loading, error, create, remove, adminMode }) {
   const [showPlan, setShowPlan] = useState(false);
+  const [saving,   setSaving]   = useState(false);
   const [planForm, setPlanForm] = useState({ name: "", price: "", features: "", limits: "", icp: "" });
 
-  const savePlan = () => {
-    if (!planForm.name.trim()) return;
-    setPlans(prev => [...prev, {
-      ...planForm, id: genId(),
-      features: planForm.features.split(",").map(f => f.trim()).filter(Boolean),
-    }]);
-    setShowPlan(false);
-    setPlanForm({ name: "", price: "", features: "", limits: "", icp: "" });
+  const savePlan = async () => {
+    if (!planForm.name.trim() || !planForm.price.trim()) return;
+    setSaving(true);
+    try {
+      await create({
+        ...planForm,
+        features: planForm.features.split(",").map(f => f.trim()).filter(Boolean),
+      });
+      setShowPlan(false);
+      setPlanForm({ name: "", price: "", features: "", limits: "", icp: "" });
+    } catch (e) { alert(e.message); }
+    finally { setSaving(false); }
   };
 
   const dtPlans = plans.filter(p => !p.name.startsWith("QuickSell"));
@@ -83,10 +86,10 @@ export default function PricingModule({ plans, setPlans, adminMode }) {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 32 }}>
       {items.map((plan, i) => (
         <PlanCard
-          key={plan.id} plan={plan}
+          key={plan._id} plan={plan}
           accent={ACCENT_COLORS[(i + offset) % ACCENT_COLORS.length]}
           adminMode={adminMode}
-          onRemove={() => setPlans(prev => prev.filter(p => p.id !== plan.id))}
+          onRemove={() => remove(plan._id)}
         />
       ))}
     </div>
@@ -100,31 +103,24 @@ export default function PricingModule({ plans, setPlans, adminMode }) {
         action={adminMode && <Btn onClick={() => setShowPlan(true)}><Icon name="plus" size={13} /> Add Plan</Btn>}
       />
 
-      {/* DoubleTick Plans */}
+      {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading plans…</p>}
+      {error   && <p style={{ color: "#f87171", fontSize: 13 }}>Error: {error}</p>}
+
       {dtPlans.length > 0 && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)" }} />
-            <span style={{ color: "var(--text-muted)", fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>DoubleTick Plans</span>
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          </div>
+          <SectionLabel dot="var(--accent)" label="DoubleTick Plans" />
           <PlanGrid items={dtPlans} offset={0} />
         </>
       )}
 
-      {/* QuickSell Plans */}
       {qsPlans.length > 0 && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-blue)" }} />
-            <span style={{ color: "var(--text-muted)", fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>QuickSell Plans</span>
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          </div>
+          <SectionLabel dot="var(--accent-blue)" label="QuickSell Plans" />
           <PlanGrid items={qsPlans} offset={3} />
         </>
       )}
 
-      {plans.length === 0 && <EmptyState icon="pricing" message="No pricing plans added yet." />}
+      {!loading && plans.length === 0 && <EmptyState icon="pricing" message="No pricing plans yet." />}
 
       {/* Conversation Costs */}
       <div style={{
@@ -132,7 +128,7 @@ export default function PricingModule({ plans, setPlans, adminMode }) {
         background: "var(--surface2)", border: "1px solid var(--border2)",
         borderRadius: "var(--radius-md)", borderLeft: "3px solid var(--accent-blue)",
       }}>
-        <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13.5, marginBottom: 12, letterSpacing: "-0.01em" }}>
+        <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13.5, marginBottom: 12 }}>
           💬 WhatsApp Conversation Costs (INR)
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
@@ -142,10 +138,7 @@ export default function PricingModule({ plans, setPlans, adminMode }) {
             { label: "Service",        price: "₹0.35" },
             { label: "Authentication", price: "₹0.35" },
           ].map(c => (
-            <div key={c.label} style={{
-              textAlign: "center", padding: "10px 8px",
-              background: "var(--surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)",
-            }}>
+            <div key={c.label} style={{ textAlign: "center", padding: "10px 8px", background: "var(--surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
               <div style={{ color: "var(--accent-blue)", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>{c.price}</div>
               <div style={{ color: "var(--text-dim)", fontSize: 10.5, marginTop: 3, textTransform: "uppercase", letterSpacing: "0.06em" }}>{c.label}</div>
             </div>
@@ -161,17 +154,27 @@ export default function PricingModule({ plans, setPlans, adminMode }) {
 
       {showPlan && (
         <Modal title="Add Pricing Plan" onClose={() => setShowPlan(false)}>
-          <Field label="Plan Name" value={planForm.name} onChange={v => setPlanForm(f => ({ ...f, name: v }))} placeholder="e.g. Professional" />
-          <Field label="Price" value={planForm.price} onChange={v => setPlanForm(f => ({ ...f, price: v }))} placeholder="e.g. ₹8,300/mo" />
+          <Field label="Plan Name"   value={planForm.name}     onChange={v => setPlanForm(f => ({ ...f, name: v }))}     placeholder="e.g. Professional" />
+          <Field label="Price"       value={planForm.price}    onChange={v => setPlanForm(f => ({ ...f, price: v }))}    placeholder="e.g. ₹8,300/mo" />
           <Field label="Features (comma-separated)" value={planForm.features} onChange={v => setPlanForm(f => ({ ...f, features: v }))} placeholder="Feature A, Feature B" as="textarea" />
-          <Field label="Limits" value={planForm.limits} onChange={v => setPlanForm(f => ({ ...f, limits: v }))} placeholder="e.g. Up to 20 users" />
-          <Field label="Best For (ICP)" value={planForm.icp} onChange={v => setPlanForm(f => ({ ...f, icp: v }))} placeholder="Who is this plan for?" as="textarea" />
+          <Field label="Limits"      value={planForm.limits}   onChange={v => setPlanForm(f => ({ ...f, limits: v }))}   placeholder="e.g. Up to 20 users" />
+          <Field label="Best For"    value={planForm.icp}      onChange={v => setPlanForm(f => ({ ...f, icp: v }))}      placeholder="Who is this plan for?" as="textarea" />
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-            <Btn onClick={savePlan}>Save Plan</Btn>
+            <Btn onClick={savePlan}>{saving ? "Saving…" : "Save Plan"}</Btn>
             <Btn variant="ghost" onClick={() => setShowPlan(false)}>Cancel</Btn>
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function SectionLabel({ dot, label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ width: 5, height: 5, borderRadius: "50%", background: dot }} />
+      <span style={{ color: "var(--text-muted)", fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
     </div>
   );
 }
