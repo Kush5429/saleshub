@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { loadData, saveData } from "../utils/storage";
 
 // Bump this version string whenever you want to reset all users to fresh default data
-const DATA_VERSION = "doubletick-v1";
+const DATA_VERSION = "doubletick-v2";
 const VERSION_KEY  = "sip:data_version";
 
 /**
