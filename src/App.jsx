@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./modules/Dashboard";
 import DocsHub from "./modules/DocsHub";
 import PricingModule from "./modules/PricingModule";
+import AddonsModule from "./modules/AddonsModule";
 import VideoLibrary from "./modules/VideoLibrary";
 import ResourcesHub from "./modules/ResourcesHub";
 import FeatureRegistry from "./modules/FeatureRegistry";
@@ -30,8 +31,9 @@ export default function App() {
       case "docs":
         return <DocsHub docs={docs} setDocs={setDocs} adminMode={adminMode} />;
       case "pricing":
+        return <PricingModule plans={plans} setPlans={setPlans} adminMode={adminMode} />;
       case "addons":
-        return <PricingModule plans={plans} setPlans={setPlans} addons={addons} setAddons={setAddons} adminMode={adminMode} />;
+        return <AddonsModule addons={addons} setAddons={setAddons} adminMode={adminMode} />;
       case "videos":
         return <VideoLibrary videos={videos} setVideos={setVideos} adminMode={adminMode} />;
       case "resources":
