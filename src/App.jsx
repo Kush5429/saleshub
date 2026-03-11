@@ -12,7 +12,7 @@ import { DEFAULT_DATA, STORAGE_KEYS } from "./data/defaultData";
 
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode,  setAdminMode]  = useState(false);
 
   const [docs,      setDocs]      = usePersistentData(STORAGE_KEYS.docs,      DEFAULT_DATA.docs);
   const [plans,     setPlans]     = usePersistentData(STORAGE_KEYS.plans,     DEFAULT_DATA.plans);
@@ -46,14 +46,14 @@ export default function App() {
   };
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"var(--bg)" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
       <Sidebar
         active={activePage}
         onNav={setActivePage}
         adminMode={adminMode}
         onToggleAdmin={() => setAdminMode(m => !m)}
       />
-      <main style={{ flex:1, padding:"32px 40px", overflowY:"auto", maxWidth:"calc(100vw - 220px)" }}>
+      <main style={{ flex: 1, padding: "32px 40px", overflowY: "auto", maxWidth: "calc(100vw - 220px)" }}>
         {renderPage()}
       </main>
     </div>
