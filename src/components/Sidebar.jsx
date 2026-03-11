@@ -44,10 +44,10 @@ export default function Sidebar({ active, onNav, adminMode, onToggleAdmin }) {
               color: "var(--text)", fontWeight: 900,
               fontFamily: "var(--font-display)", fontSize: 15, lineHeight: 1.1,
             }}>
-              Sales Hub
+              DoubleTick
             </div>
             <div style={{ color: "var(--text-dim)", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Intelligence Platform
+              Sales Playbook
             </div>
           </div>
         </div>
