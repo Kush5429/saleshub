@@ -38,15 +38,15 @@ export default function Dashboard({ data, onNav }) {
           </div>
 
           <h1 style={{ color:"var(--text)", fontSize:40, fontWeight:900, fontFamily:"var(--font-display)", margin:"0 0 12px", lineHeight:1.05 }}>
-            Sales Intelligence<br /><span style={{ color:"var(--accent)" }}>Hub</span>
+            DoubleTick<br /><span style={{ color:"var(--accent)" }}>Sales Hub</span>
           </h1>
 
           <p style={{ color:"var(--text-muted)", fontSize:15, margin:"0 0 24px", maxWidth:520, lineHeight:1.65 }}>
-            Your centralized source of truth for product knowledge, pricing, demo videos, and sales resources. Everything a rep needs — in one place.
+            Your internal playbook for selling DoubleTick and QuickSell — pricing, plans, add-ons, live demo chatbots, training resources, and onboarding guides. Everything a rep needs.
           </p>
 
           <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-            {["Pricing Engine", "Demo Library", "Feature Registry", "Training Hub"].map((tag, i) => (
+            {["WhatsApp Business API", "Rate Card", "Chatbot Builder", "QuickSell"].map((tag, i) => (
               <Badge key={tag} text={tag} color={TAG_ACCENTS[i]} />
             ))}
           </div>
