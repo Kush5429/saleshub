@@ -53,8 +53,10 @@ export default function App() {
         adminMode={adminMode}
         onToggleAdmin={() => setAdminMode(m => !m)}
       />
-      <main style={{ flex: 1, padding: "32px 40px", overflowY: "auto", maxWidth: "calc(100vw - 220px)" }}>
-        {renderPage()}
+      <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 40px" }}>
+          {renderPage()}
+        </div>
       </main>
     </div>
   );
