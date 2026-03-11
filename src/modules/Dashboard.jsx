@@ -28,7 +28,7 @@ export default function Dashboard({ data, onNav }) {
       {/* Hero */}
       <div style={{
         marginBottom: 32,
-        padding: "36px 40px",
+        padding: "30px 36px",
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--radius-xl)",
@@ -60,7 +60,7 @@ export default function Dashboard({ data, onNav }) {
           </div>
 
           <h1 style={{
-            color: "var(--text)", fontSize: 42, fontWeight: 700,
+            color: "var(--text)", fontSize: 36, fontWeight: 700,
             fontFamily: "var(--font-display)", margin: "0 0 10px",
             lineHeight: 1.05, letterSpacing: "-0.04em",
           }}>
