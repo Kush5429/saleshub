@@ -14,7 +14,7 @@ function PlanCard({ plan, accent, adminMode, onRemove }) {
     <div
       style={{
         background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-xl)", padding: "24px 22px",
+        borderRadius: "var(--radius-xl)", padding: "20px 18px",
         position: "relative", overflow: "hidden",
         display: "flex", flexDirection: "column", transition: "border-color 0.2s",
       }}
@@ -26,7 +26,7 @@ function PlanCard({ plan, accent, adminMode, onRemove }) {
       <div style={{ marginBottom: 14 }}>
         <div style={{ color: accent, fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>Plan</div>
         <div style={{ color: "var(--text)", fontSize: 20, fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "-0.03em", marginBottom: 4 }}>{plan.name}</div>
-        <div style={{ color: accent, fontSize: 28, fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "-0.04em", lineHeight: 1 }}>{plan.price}</div>
+        <div style={{ color: accent, fontSize: 24, fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "-0.04em", lineHeight: 1 }}>{plan.price}</div>
       </div>
 
       <div style={{ height: 1, background: "var(--border)", marginBottom: 16 }} />
@@ -198,7 +198,7 @@ export default function PricingModule({ plans, setPlans, addons, setAddons, admi
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
           {[
-            { label: "Marketing",      price: "₹0.99" },
+            { label: "Marketing",      price: "₹0.87" },
             { label: "Utility",        price: "₹0.13" },
             { label: "Service",        price: "₹0.35" },
             { label: "Authentication", price: "₹0.35" },
