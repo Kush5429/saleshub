@@ -46,15 +46,14 @@ export const DEFAULT_DATA = {
     {
       id: 1,
       name: "Starter",
-      price: "₹5,000/mo",
+      price: "₹5,700/mo",
       features: [
         "1 WABA number (free onboarding)",
         "Users: ₹500/user/mo (1–20 users)",
         "Bulk Broadcasting",
         "Basic Chatbot Automation",
         "Core WhatsApp Business API features",
-        "Quarterly: ₹12,900 (10% off)",
-        "Yearly: ₹30,000 (20% off)",
+        
       ],
       limits: "No additional WABAs · Up to 20 users",
       icp: "Small businesses and early-stage teams getting started with WhatsApp Business API.",
@@ -62,7 +61,7 @@ export const DEFAULT_DATA = {
     {
       id: 2,
       name: "Pro",
-      price: "₹8,000/mo",
+      price: "₹8,300/mo",
       features: [
         "1 WABA number (free onboarding)",
         "Users 1–20: ₹600/user/mo",
@@ -71,8 +70,7 @@ export const DEFAULT_DATA = {
         "Additional WABAs supported",
         "Advanced Chatbot Automation",
         "Third-party CRM Integrations",
-        "Quarterly: ₹18,000 (10% off)",
-        "Yearly: ₹42,000 (20% off)",
+        
       ],
       limits: "Up to 75 users · Multiple WABAs",
       icp: "Growing SMBs that need multi-agent support, automation, and integrations like Zoho, HubSpot, IndiaMart.",
@@ -80,7 +78,7 @@ export const DEFAULT_DATA = {
     {
       id: 3,
       name: "Enterprise",
-      price: "Custom",
+      price: "₹10,000+/mo",
       features: [
         "1 WABA number (free onboarding)",
         "Users 1–20: ₹800/user/mo",
@@ -149,7 +147,7 @@ export const DEFAULT_DATA = {
       id: 1,
       name: "VIP Support — WhatsApp Group",
       description: "Dedicated WhatsApp support group for priority issue resolution and direct access to the DoubleTick team.",
-      price: "₹8,000/mo",
+      price: "₹8,300/mo",
       plans: "Pro, Enterprise",
     },
     {
