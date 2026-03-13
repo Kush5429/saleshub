@@ -110,7 +110,7 @@ export default function PricingModule({ data: plans = [], loading, error, create
       <div style={{ padding: "16px 20px", background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: "var(--radius-md)", borderLeft: "3px solid var(--accent-blue)" }}>
         <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13.5, marginBottom: 12 }}>💬 WhatsApp Conversation Costs (INR)</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-          {[{ label: "Marketing", price: "₹0.87" },{ label: "Utility", price: "₹0.13" },{ label: "Service", price: "₹0.35" },{ label: "Authentication", price: "₹0.35" }].map(c => (
+          {[{ label: "Marketing", price: "₹0.99" },{ label: "Utility", price: "₹0.13" },{ label: "Service", price: "Free Till 24 Hours" },{ label: "Authentication", price: "₹0.35" }].map(c => (
             <div key={c.label} style={{ textAlign: "center", padding: "10px 8px", background: "var(--surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
               <div style={{ color: "var(--accent-blue)", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>{c.price}</div>
               <div style={{ color: "var(--text-dim)", fontSize: 10.5, marginTop: 3, textTransform: "uppercase", letterSpacing: "0.06em" }}>{c.label}</div>
