@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Icon from "./components/Icon";
 import LoginPage from "./modules/LoginPage";
 
 import Dashboard             from "./modules/Dashboard";
@@ -24,10 +25,19 @@ import {
   videosApi, resourcesApi, featuresApi,
 } from "./utils/api";
 
+const PAGE_LABELS = {
+  dashboard: "Dashboard", docs: "Docs Hub", pricing: "Pricing",
+  addons: "Add-ons", videos: "Videos", resources: "Resources",
+  features: "Features", "ai-playbook": "AI Playbook",
+  "call-intelligence": "Call Intelligence", "knowledge-graph": "Knowledge Graph",
+  intelligence: "Intelligence", admin: "Admin Panel", search: "Search",
+};
+
 function AppShell() {
   const { isAdmin } = useAuth();
-  const [activePage,  setActivePage]  = useState("dashboard");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activePage,   setActivePage]   = useState("dashboard");
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
 
   const docs      = useApiData(docsApi);
   const plans     = useApiData(pricingApi);
@@ -45,11 +55,13 @@ function AppShell() {
     setSearchQuery(val);
     if (val.trim()) setActivePage("search");
     else setActivePage("dashboard");
+    setSidebarOpen(false);
   };
 
   const handleNav = (page) => {
     setActivePage(page);
     if (page !== "search") setSearchQuery("");
+    setSidebarOpen(false);
   };
 
   const renderPage = () => {
@@ -74,10 +86,47 @@ function AppShell() {
   };
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"var(--bg)" }}>
-      <Sidebar active={activePage} onNav={handleNav} onSearch={handleSearch} />
-      <main style={{ flex:1, overflowY:"auto", background:"var(--bg)" }}>
-        <div style={{ maxWidth:1100, margin:"0 auto", padding:"32px 40px" }}>
+    <div className="app-shell">
+
+      {/* Mobile overlay */}
+      <div
+        className={"sidebar-overlay" + (sidebarOpen ? " open" : "")}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      {/* Sidebar */}
+      <Sidebar
+        active={activePage}
+        onNav={handleNav}
+        onSearch={handleSearch}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main content */}
+      <main className="main-content">
+
+        {/* Mobile topbar */}
+        <div className="mobile-topbar">
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(true)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6"  x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:24, height:24, borderRadius:6, background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon name="zap" size={12} color="#09090b" />
+            </div>
+            <span style={{ fontFamily:"Syne, sans-serif", fontWeight:700, fontSize:14, color:"var(--text)" }}>
+              {PAGE_LABELS[activePage] || "DoubleTick"}
+            </span>
+          </div>
+          <div style={{ width:36 }} />
+        </div>
+
+        <div className="main-content-inner">
           <ErrorBoundary key={activePage}>
             {renderPage()}
           </ErrorBoundary>
