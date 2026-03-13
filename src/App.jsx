@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Sidebar from "./components/Sidebar";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Dashboard from "./modules/Dashboard";
 import DocsHub from "./modules/DocsHub";
 import PricingModule from "./modules/PricingModule";
@@ -76,7 +77,9 @@ export default function App() {
       />
       <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 40px" }}>
-          {renderPage()}
+          <ErrorBoundary key={activePage}>
+            {renderPage()}
+          </ErrorBoundary>
         </div>
       </main>
     </div>
