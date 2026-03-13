@@ -108,7 +108,27 @@ function isRateLimited(ip) {
   return entry.count > 10;
 }
 
-// ── LLM: Gemini (primary, free tier) ─────────────────────────
+// ── LLM: Groq (primary — fastest free tier) ──────────────────
+async function callGroq(system, userMsg) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error("GROQ_API_KEY not configured.");
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 1024,
+      temperature: 0.4,
+      messages: [
+        { role: "system", content: system },
+        { role: "user",   content: userMsg },
+      ],
+    }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.error?.message || `Groq API error (${r.status})`);
+  return d.choices?.[0]?.message?.content || "";
+}
 async function callGemini(system, userMsg, retries = 2) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY not configured.");
@@ -147,11 +167,12 @@ async function callAnthropic(system, userMsg) {
   return d.content?.[0]?.text || "";
 }
 
-// ── LLM router: Gemini first, Anthropic fallback ──────────────
+// ── LLM router: Groq → Gemini → Anthropic ────────────────────
 async function callClaude(system, userMsg) {
-  if (process.env.GEMINI_API_KEY) return callGemini(system, userMsg);
-  if (process.env.ANTHROPIC_API_KEY) return callAnthropic(system, userMsg);
-  throw new Error("No LLM API key configured. Set GEMINI_API_KEY or ANTHROPIC_API_KEY in Vercel environment variables.");
+  if (process.env.GROQ_API_KEY)       return callGroq(system, userMsg);
+  if (process.env.GEMINI_API_KEY)     return callGemini(system, userMsg);
+  if (process.env.ANTHROPIC_API_KEY)  return callAnthropic(system, userMsg);
+  throw new Error("No LLM API key configured. Set GROQ_API_KEY, GEMINI_API_KEY, or ANTHROPIC_API_KEY in Vercel environment variables.");
 }
 
 // ── Response helpers ──────────────────────────────────────────
@@ -456,4 +477,4 @@ export default async function handler(req, res) {
     return notAllowed(res);
 
   } catch (err) { return serverError(res, err); }
-  }
+          }
