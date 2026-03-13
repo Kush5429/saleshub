@@ -109,7 +109,7 @@ function isRateLimited(ip) {
 }
 
 // ── LLM: Gemini (primary, free tier) ─────────────────────────
-async function callGemini(system, userMsg) {
+async function callGemini(system, userMsg, retries = 2) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY not configured.");
   const r = await fetch(
@@ -124,8 +124,12 @@ async function callGemini(system, userMsg) {
       }),
     }
   );
+  if (r.status === 429 && retries > 0) {
+    await new Promise(res => setTimeout(res, 3000));
+    return callGemini(system, userMsg, retries - 1);
+  }
   const d = await r.json();
-  if (!r.ok) throw new Error(d?.error?.message || "Gemini API error");
+  if (!r.ok) throw new Error(d?.error?.message || `Gemini API error (${r.status})`);
   return d.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
@@ -452,4 +456,4 @@ export default async function handler(req, res) {
     return notAllowed(res);
 
   } catch (err) { return serverError(res, err); }
-                  }
+                                                   }
