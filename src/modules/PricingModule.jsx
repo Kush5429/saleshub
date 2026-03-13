@@ -108,7 +108,7 @@ export default function PricingModule({ data: plans = [], loading, error, create
       {dtPlans.length > 0 && (
         <>
           <SectionLabel dot="var(--accent)" label="DoubleTick Plans" />
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:40 }}>
+          <div className="grid-cols-3" style={{ marginBottom:40 }}>
             {dtPlans.map((plan, i) => (
               <PlanCard key={plan._id} plan={plan} accent={ACCENT_COLORS[i % ACCENT_COLORS.length]}
                 adminMode={adminMode} onRemove={() => remove(plan._id)} onEdit={() => openEdit(plan)} />
@@ -120,7 +120,7 @@ export default function PricingModule({ data: plans = [], loading, error, create
       {qsPlans.length > 0 && (
         <>
           <SectionLabel dot="var(--accent-blue)" label="QuickSell Plans" />
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:40 }}>
+          <div className="grid-cols-3" style={{ marginBottom:40 }}>
             {qsPlans.map((plan, i) => (
               <PlanCard key={plan._id} plan={plan} accent={ACCENT_COLORS[(i+3) % ACCENT_COLORS.length]}
                 adminMode={adminMode} onRemove={() => remove(plan._id)} onEdit={() => openEdit(plan)} />
@@ -134,7 +134,7 @@ export default function PricingModule({ data: plans = [], loading, error, create
       {/* WhatsApp Conversation Costs */}
       <div style={{ padding:"20px 24px", background:"var(--surface2)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", borderLeft:"3px solid var(--accent-blue)" }}>
         <div style={{ color:"var(--text)", fontWeight:700, fontSize:15, marginBottom:16 }}>💬 WhatsApp Conversation Costs (INR)</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
+        <div className="grid-cols-4">
           {[{label:"Marketing",price:"₹0.87"},{label:"Utility",price:"₹0.13"},{label:"Service",price:"₹0.35"},{label:"Authentication",price:"₹0.35"}].map(c => (
             <div key={c.label} style={{ textAlign:"center", padding:"14px 10px", background:"var(--surface)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border)" }}>
               <div style={{ color:"var(--accent-blue)", fontWeight:700, fontSize:20, fontFamily:"var(--font-display)", letterSpacing:"-0.02em" }}>{c.price}</div>
