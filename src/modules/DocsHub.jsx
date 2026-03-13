@@ -1,122 +1,136 @@
 import { useState } from "react";
-import { Btn, Field, SectionHeader, EmptyState } from "../components/UI";
+import { Btn, Badge, Card, Field, SectionHeader, EmptyState } from "../components/UI";
 import Modal from "../components/Modal";
 import Icon from "../components/Icon";
-import { ACCENT_COLORS } from "../data/defaultData";
+import { uploadFile } from "../utils/api";
+import { CATEGORY_COLORS } from "../data/defaultData";
 
-const ADDON_GROUPS = [
-  { label: "Support & Implementation", keys: ["VIP Support", "End-to-End"] },
-  { label: "One-time Setup",           keys: ["GreenTick", "Bot Building"] },
-  { label: "CRM Integrations",         keys: ["Zoho", "HubSpot", "IndiaMart", "LeadSquared", "Bitrix", "3rd Party", "CRM"] },
-  { label: "Additional WABAs",         keys: ["WABA"] },
+const CAT_OPTIONS = ["Overview", "Features", "Technical", "Use Cases", "Other"];
+
+// Static docs always available regardless of API status
+const STATIC_DOCS = [
+  {
+    _id: "static-doubletick-rm-deck",
+    title: "DoubleTick for RM & Sales Teams",
+    category: "Overview",
+    description: "Complete product deck for Relationship Managers and Sales Teams — CX governance, key differentiators, features, bot studio, analytics, and case studies.",
+    fileUrl: "/DoubleTick for RM_ Sales Teams.pdf",
+    createdAt: new Date("2025-01-01").toISOString(),
+    isStatic: true,
+  },
 ];
 
-function groupAddons(addons) {
-  const groups = ADDON_GROUPS.map(g => ({ ...g, items: [] }));
-  const other = { label: "Other", items: [] };
-  addons.forEach(addon => {
-    let placed = false;
-    for (const group of groups) {
-      if (group.keys.some(k => addon.name.includes(k))) { group.items.push(addon); placed = true; break; }
-    }
-    if (!placed) other.items.push(addon);
-  });
-  return [...groups, other].filter(g => g.items.length > 0);
-}
+const EMPTY_FORM = { title: "", category: "Overview", description: "", fileUrl: "" };
 
-const EMPTY_FORM = { name: "", description: "", price: "", compatiblePlans: "" };
+export default function DocsHub({ data: apiDocs = [], loading, error, create, update, remove, adminMode }) {
+  const staticTitles = new Set(STATIC_DOCS.map(d => d.title));
+  const docs = [...STATIC_DOCS, ...apiDocs.filter(d => !staticTitles.has(d.title))];
 
-export default function AddonsModule({ data: addons = [], loading, error, create, update, remove, adminMode }) {
   const [showModal, setShowModal] = useState(false);
-  const [saving,    setSaving]   = useState(false);
-  const [editItem,  setEditItem] = useState(null);
-  const [form,      setForm]     = useState(EMPTY_FORM);
+  const [search,    setSearch]    = useState("");
+  const [filterCat, setFilterCat] = useState("All");
+  const [saving,    setSaving]    = useState(false);
+  const [editItem,  setEditItem]  = useState(null);
+  const [form,      setForm]      = useState(EMPTY_FORM);
+  const [fileObj,   setFileObj]   = useState(null);
 
-  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setShowModal(true); };
-  const openEdit = (addon) => {
-    setEditItem(addon);
-    setForm({ name: addon.name || "", description: addon.description || "", price: addon.price || "", compatiblePlans: addon.compatiblePlans || addon.plans || "" });
+  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setFileObj(null); setShowModal(true); };
+  const openEdit = (doc) => {
+    setEditItem(doc);
+    setForm({ title: doc.title || "", category: doc.category || "Overview", description: doc.description || "", fileUrl: doc.fileUrl || "" });
+    setFileObj(null);
     setShowModal(true);
   };
 
   const save = async () => {
-    if (!form.name.trim() || !form.price.trim()) return;
+    if (!form.title.trim()) return;
     setSaving(true);
     try {
-      editItem ? await update(editItem._id, form) : await create(form);
-      setShowModal(false); setForm(EMPTY_FORM); setEditItem(null);
-    } catch (e) { alert(e.message); }
+      let fileUrl = form.fileUrl;
+      if (fileObj) { const uploaded = await uploadFile(fileObj); fileUrl = uploaded.url; }
+      const payload = { ...form, fileUrl };
+      editItem ? await update(editItem._id, payload) : await create(payload);
+      setShowModal(false); setForm(EMPTY_FORM); setFileObj(null); setEditItem(null);
+    } catch (err) { alert("Save failed: " + err.message); }
     finally { setSaving(false); }
   };
 
-  const grouped = groupAddons(addons);
-  let globalIdx = 0;
+  const categories = ["All", ...new Set(docs.map(d => d.category))];
+  const filtered = docs.filter(d =>
+    (filterCat === "All" || d.category === filterCat) &&
+    (d.title.toLowerCase().includes(search.toLowerCase()) || d.description.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
     <div className="animate-in">
-      <SectionHeader title="Add-ons & Services" subtitle="Purchasable extensions, one-time services, CRM integrations, and additional WABAs."
-        action={adminMode && <Btn onClick={openAdd}><Icon name="plus" size={13} /> Add Add-on</Btn>} />
-      {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading add-ons…</p>}
-      {error   && <p style={{ color: "#f87171",          fontSize: 13 }}>Error: {error}</p>}
-      {!loading && addons.length === 0
-        ? <EmptyState icon="addons" message="No add-ons added yet." />
-        : grouped.map(group => (
-          <div key={group.label} style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-orange)" }} />
-              <span style={{ color: "var(--text-muted)", fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>{group.label}</span>
-              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              <span style={{ color: "var(--text-dim)", fontSize: 10.5 }}>{group.items.length} item{group.items.length !== 1 ? "s" : ""}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {group.items.map(addon => {
-                const accent = ACCENT_COLORS[globalIdx++ % ACCENT_COLORS.length];
-                const plans  = addon.compatiblePlans || addon.plans || "";
-                return (
-                  <div key={addon._id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 18px", display: "flex", alignItems: "flex-start", gap: 14, transition: "border-color 0.15s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border2)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
-                    <div style={{ width: 34, height: 34, borderRadius: "var(--radius-sm)", flexShrink: 0, background: accent + "10", border: `1px solid ${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
-                      <Icon name="addons" size={13} color={accent} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13.5, marginBottom: 3, letterSpacing: "-0.01em" }}>{addon.name}</div>
-                      <div style={{ color: "var(--text-muted)", fontSize: 12.5, lineHeight: 1.5, marginBottom: plans ? 6 : 0 }}>{addon.description}</div>
-                      {plans && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          <span style={{ color: "var(--text-dim)", fontSize: 10.5, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>Compatible:</span>
-                          <span style={{ color: accent, fontSize: 11, fontWeight: 600 }}>{plans}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                      <div style={{ color: accent, fontWeight: 700, fontSize: 14, fontFamily: "var(--font-display)", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>{addon.price}</div>
-                      {adminMode && (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <Btn small onClick={() => openEdit(addon)}><Icon name="edit" size={11} /> Edit</Btn>
-                          <Btn variant="danger" small onClick={() => remove(addon._id)}><Icon name="trash" size={11} /></Btn>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))
-      }
-      <div style={{ marginTop: 8, padding: "14px 18px", background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: "var(--radius-md)", borderLeft: "3px solid var(--accent-orange)" }}>
-        <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13, marginBottom: 4 }}>⚠️ Integration Note</div>
-        <div style={{ color: "var(--text-muted)", fontSize: 12.5, lineHeight: 1.6 }}>All CRM integrations require an Open API. A one-time integration cost of <strong style={{ color: "var(--text)" }}>₹50,000</strong> applies, in addition to the annual subscription fee.</div>
+      <SectionHeader title="Documentation Hub" subtitle="Centralized repository for all platform PDFs and knowledge documents."
+        action={adminMode && <Btn onClick={openAdd}><Icon name="plus" size={13} /> Upload Doc</Btn>} />
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search documents…"
+          style={{ flex: 1, minWidth: 200, background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: "var(--radius-sm)", padding: "8px 12px", color: "var(--text)", fontSize: 13, outline: "none" }} />
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setFilterCat(cat)} style={{ padding: "7px 14px", borderRadius: "var(--radius-sm)", fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", borderColor: filterCat === cat ? "var(--accent)" : "var(--border2)", background: filterCat === cat ? "var(--accent)18" : "transparent", color: filterCat === cat ? "var(--accent)" : "var(--text-muted)" }}>{cat}</button>
+          ))}
+        </div>
       </div>
+      {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading documents…</p>}
+      {error   && <p style={{ color: "#ff4444",          fontSize: 13 }}>Error: {error}</p>}
+      {!loading && filtered.length === 0
+        ? <EmptyState icon="docs" message="No documents found." />
+        : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filtered.map(doc => (
+              <Card key={doc._id} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: "var(--surface2)", border: "1px solid var(--border2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="file" size={18} color="var(--accent)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5, flexWrap: "wrap" }}>
+                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{doc.title}</span>
+                    <Badge text={doc.category} color={CATEGORY_COLORS[doc.category] || "var(--text-muted)"} />
+                    {doc.isStatic && <Badge text="PINNED" color="var(--accent)" />}
+                  </div>
+                  <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 8px" }}>{doc.description}</p>
+                  <div style={{ color: "var(--text-dim)", fontSize: 12 }}>Added: {new Date(doc.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  {doc.fileUrl && (
+                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Btn variant="ghost" small><Icon name="external" size={12} /></Btn>
+                    </a>
+                  )}
+                  {adminMode && !doc.isStatic && (
+                    <>
+                      <Btn small onClick={() => openEdit(doc)}><Icon name="edit" size={12} /></Btn>
+                      <Btn variant="danger" small onClick={() => remove(doc._id)}><Icon name="trash" size={12} /></Btn>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
+      }
       {showModal && (
-        <Modal title={editItem ? "Edit Add-on" : "Add Add-on"} onClose={() => setShowModal(false)}>
-          <Field label="Name"             value={form.name}            onChange={v => setForm(f => ({ ...f, name: v }))}            placeholder="e.g. Priority SLA" />
-          <Field label="Description"      value={form.description}     onChange={v => setForm(f => ({ ...f, description: v }))}     placeholder="What does this include?" as="textarea" />
-          <Field label="Price"            value={form.price}           onChange={v => setForm(f => ({ ...f, price: v }))}           placeholder="e.g. ₹8,000/mo" />
-          <Field label="Compatible Plans" value={form.compatiblePlans} onChange={v => setForm(f => ({ ...f, compatiblePlans: v }))} placeholder="e.g. Pro, Enterprise" />
+        <Modal title={editItem ? "Edit Document" : "Upload Document"} onClose={() => setShowModal(false)}>
+          <Field label="Document Title" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g. Platform Overview Q1 2026" />
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.08em" }}>Category</label>
+            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: "var(--radius-sm)", padding: "9px 13px", color: "var(--text)", fontSize: 13, outline: "none" }}>
+              {CAT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <Field label="Description" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Brief description of this document…" as="textarea" />
+          {!editItem && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.08em" }}>Upload File (PDF)</label>
+              <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFileObj(e.target.files[0] || null)} style={{ color: "var(--text-muted)", fontSize: 13 }} />
+            </div>
+          )}
+          <Field label="Or paste file URL" value={form.fileUrl} onChange={v => setForm(f => ({ ...f, fileUrl: v }))} placeholder="https://…" type="url" />
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-            <Btn onClick={save}>{saving ? "Saving…" : editItem ? "Update Add-on" : "Save Add-on"}</Btn>
+            <Btn onClick={save}>{saving ? "Saving…" : editItem ? "Update Document" : "Save Document"}</Btn>
             <Btn variant="ghost" onClick={() => setShowModal(false)}>Cancel</Btn>
           </div>
         </Modal>
