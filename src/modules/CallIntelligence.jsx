@@ -54,7 +54,10 @@ export default function CallIntelligence() {
       const data = await analyzeTranscript(transcript);
       setResult(data);
     } catch (e) {
-      setError(e.message);
+      const msg = e.message?.includes("429") || e.message?.toLowerCase().includes("quota") || e.message?.toLowerCase().includes("rate")
+        ? "Rate limit reached. Please wait 30 seconds and try again."
+        : e.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
