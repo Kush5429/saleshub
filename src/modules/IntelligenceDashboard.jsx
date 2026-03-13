@@ -14,8 +14,8 @@ function TopContentRow({ item, rank, type }) {
         <span style={{ color: accent, fontSize: 10, fontWeight: 700 }}>#{rank}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: "var(--text-muted)", fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {item.contentId}
+        <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {item.contentName || item.contentId}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -137,16 +137,18 @@ export default function IntelligenceDashboard() {
         {(recentEvents || []).slice(0, 15).map((ev, i) => {
           const color = EVENT_COLORS[ev.eventType] || "var(--accent)";
           return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: i < 14 ? "1px solid var(--border)" : "none" }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < 14 ? "1px solid var(--border)" : "none" }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: color + "12", border: `1px solid ${color}25`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name={ev.contentType === "video" ? "video" : ev.contentType === "feature" ? "features" : ev.contentType === "docs" ? "docs" : "resources"} size={11} color={color} />
               </div>
-              <div style={{ flex: 1 }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 12.5 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                   <Badge text={ev.eventType?.replace("_", " ")} color={color} />
-                  {" "}on{" "}
-                  <span style={{ color: "var(--text)", fontWeight: 600 }}>{ev.contentType}</span>
-                </span>
+                  {ev.contentName
+                    ? <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 13 }}>{ev.contentName}</span>
+                    : <span style={{ color: "var(--text-dim)", fontSize: 12.5, textTransform: "capitalize" }}>{ev.contentType}</span>
+                  }
+                </div>
               </div>
               <span style={{ color: "var(--text-dim)", fontSize: 11, flexShrink: 0 }}>
                 {new Date(ev.timestamp).toLocaleDateString()}
