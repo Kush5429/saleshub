@@ -16,11 +16,12 @@ async function connectDB() {
   return cached.conn;
 }
 
-// ── Models ────────────────────────────────────────────────────
+// ── Model factory ─────────────────────────────────────────────
 function model(name, schema) {
   return mongoose.models[name] || mongoose.model(name, new mongoose.Schema(schema, { timestamps: true }));
 }
 
+// ── Existing Models ───────────────────────────────────────────
 const Documentation  = model("Documentation",  { title: { type: String, required: true, trim: true }, description: { type: String, default: "" }, fileUrl: { type: String, default: "" }, category: { type: String, default: "Other", trim: true } });
 const PricingPlan    = model("PricingPlan",     { name: { type: String, required: true, trim: true }, price: { type: String, required: true }, description: { type: String, default: "" }, features: { type: [String], default: [] }, limits: { type: String, default: "" }, icp: { type: String, default: "" } });
 const Addon          = model("Addon",           { name: { type: String, required: true, trim: true }, description: { type: String, default: "" }, price: { type: String, required: true }, compatiblePlans: { type: String, default: "" } });
@@ -37,14 +38,22 @@ const User = model("User", {
 
 const EngagementEvent = model("EngagementEvent", {
   userId:      { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  contentType: { type: String, required: true },   // docs | video | feature | resource | pricing
+  contentType: { type: String, required: true },
   contentId:   { type: String, required: true },
-  eventType:   { type: String, required: true },   // view | open | play | click | demo_request
+  eventType:   { type: String, required: true },
   timestamp:   { type: Date, default: Date.now },
 });
 
 const FeatureMetric = model("FeatureMetric", {
+  featureId:    { type: mongoose.Schema.Types.ObjectId, ref: "FeatureRelease", required: true, unique: true },
+  featureName:  { type: String, default: "" },
+  views:        { type: Number, default: 0 },
+  mentions:     { type: Number, default: 0 },
+  demoRequests: { type: Number, default: 0 },
+  lastUpdated:  { type: Date, default: Date.now },
+});
 
+// ── Phase 4 Models ────────────────────────────────────────────
 const AIQuery = model("AIQuery", {
   userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   question:  { type: String, required: true },
@@ -71,33 +80,16 @@ const ContentRelation = model("ContentRelation", {
   relationType: { type: String, default: "related" },
 });
 
-  featureId:    { type: mongoose.Schema.Types.ObjectId, ref: "FeatureRelease", required: true, unique: true },
-  featureName:  { type: String, default: "" },
-  views:        { type: Number, default: 0 },
-  mentions:     { type: Number, default: 0 },
-  demoRequests: { type: Number, default: 0 },
-  lastUpdated:  { type: Date, default: Date.now },
-});
-
 // ── JWT helpers ───────────────────────────────────────────────
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "doubletick-dev-secret-change-in-prod");
 const JWT_TTL    = "7d";
 
 async function signToken(payload) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(JWT_TTL)
-    .sign(JWT_SECRET);
+  return new SignJWT(payload).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(JWT_TTL).sign(JWT_SECRET);
 }
-
 async function verifyToken(token) {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload;
-  } catch { return null; }
+  try { const { payload } = await jwtVerify(token, JWT_SECRET); return payload; } catch { return null; }
 }
-
 async function authUser(req) {
   const auth  = req.headers["authorization"] || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -105,11 +97,11 @@ async function authUser(req) {
   return verifyToken(token);
 }
 
-// ── Rate limiting (in-memory, resets on cold start) ───────────
+// ── Rate limiting ──────────────────────────────────────────────
 const loginAttempts = new Map();
 function isRateLimited(ip) {
-  const now    = Date.now();
-  const entry  = loginAttempts.get(ip) || { count: 0, resetAt: now + 60_000 };
+  const now   = Date.now();
+  const entry = loginAttempts.get(ip) || { count: 0, resetAt: now + 60_000 };
   if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60_000; }
   entry.count++;
   loginAttempts.set(ip, entry);
@@ -130,29 +122,28 @@ async function callClaude(system, userMsg) {
   return d.content?.[0]?.text || "";
 }
 
-
 // ── Response helpers ──────────────────────────────────────────
-const ok          = (res, data)  => res.status(200).json({ success: true, data });
-const created     = (res, data)  => res.status(201).json({ success: true, data });
-const noContent   = (res)        => res.status(200).json({ success: true });
-const badRequest  = (res, msg)   => res.status(400).json({ success: false, error: msg });
-const unauthorized= (res, msg)   => res.status(401).json({ success: false, error: msg || "Unauthorized" });
-const forbidden   = (res)        => res.status(403).json({ success: false, error: "Forbidden. Admin only." });
-const notFound    = (res, msg)   => res.status(404).json({ success: false, error: msg });
-const notAllowed  = (res)        => res.status(405).json({ success: false, error: "Method not allowed." });
-const serverError = (res, err)   => { console.error("[API]", err?.message || err); return res.status(500).json({ success: false, error: err?.message || "Server error" }); };
+const ok          = (res, data) => res.status(200).json({ success: true, data });
+const created     = (res, data) => res.status(201).json({ success: true, data });
+const noContent   = (res)       => res.status(200).json({ success: true });
+const badRequest  = (res, msg)  => res.status(400).json({ success: false, error: msg });
+const unauthorized= (res, msg)  => res.status(401).json({ success: false, error: msg || "Unauthorized" });
+const forbidden   = (res)       => res.status(403).json({ success: false, error: "Forbidden. Admin only." });
+const notFound    = (res, msg)  => res.status(404).json({ success: false, error: msg });
+const notAllowed  = (res)       => res.status(405).json({ success: false, error: "Method not allowed." });
+const serverError = (res, err)  => { console.error("[API]", err?.message || err); return res.status(500).json({ success: false, error: err?.message || "Server error" }); };
 
 // ── CRUD config ───────────────────────────────────────────────
 const CRUD_ROUTES = {
-  docs:      { model: Documentation,  sort: { createdAt: -1 }, validate: b => !b.title?.trim()       ? "Title is required."        : null },
-  pricing:   { model: PricingPlan,    sort: { createdAt:  1 }, validate: b => !b.name?.trim()        ? "Plan name is required."    : !b.price?.trim() ? "Price is required." : null, transform: b => ({ ...b, features: Array.isArray(b.features) ? b.features : (b.features||"").split(",").map(f=>f.trim()).filter(Boolean) }) },
-  addons:    { model: Addon,          sort: { createdAt:  1 }, validate: b => !b.name?.trim()        ? "Name is required."         : !b.price?.trim() ? "Price is required." : null },
-  videos:    { model: Video,          sort: { createdAt: -1 }, validate: b => !b.title?.trim()       ? "Title is required."        : !b.videoUrl?.trim() ? "Video URL is required." : null },
-  resources: { model: Resource,       sort: { createdAt: -1 }, validate: b => !b.title?.trim()       ? "Title is required."        : !b.link?.trim() ? "Link is required." : null },
+  docs:      { model: Documentation,  sort: { createdAt: -1 }, validate: b => !b.title?.trim() ? "Title is required." : null },
+  pricing:   { model: PricingPlan,    sort: { createdAt:  1 }, validate: b => !b.name?.trim() ? "Plan name is required." : !b.price?.trim() ? "Price is required." : null, transform: b => ({ ...b, features: Array.isArray(b.features) ? b.features : (b.features||"").split(",").map(f=>f.trim()).filter(Boolean) }) },
+  addons:    { model: Addon,          sort: { createdAt:  1 }, validate: b => !b.name?.trim() ? "Name is required." : !b.price?.trim() ? "Price is required." : null },
+  videos:    { model: Video,          sort: { createdAt: -1 }, validate: b => !b.title?.trim() ? "Title is required." : !b.videoUrl?.trim() ? "Video URL is required." : null },
+  resources: { model: Resource,       sort: { createdAt: -1 }, validate: b => !b.title?.trim() ? "Title is required." : !b.link?.trim() ? "Link is required." : null },
   features:  { model: FeatureRelease, sort: { createdAt: -1 }, validate: b => !b.featureName?.trim() ? "Feature name is required." : null },
 };
 
-// ── Handler ───────────────────────────────────────────────────
+// ── Main Handler ──────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
@@ -167,19 +158,17 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // ── AUTH: POST /api/auth/register ──────────────────────────
+    // ── AUTH ──────────────────────────────────────────────────
     if (resource === "register" && req.method === "POST") {
       const { name, email, password, role } = req.body || {};
       if (!name || !email || !password) return badRequest(res, "name, email, password required.");
-      const exists = await User.findOne({ email: email.toLowerCase() });
-      if (exists) return badRequest(res, "Email already registered.");
+      if (await User.findOne({ email: email.toLowerCase() })) return badRequest(res, "Email already registered.");
       const passwordHash = await bcrypt.hash(password, 12);
-      const user = await User.create({ name, email, passwordHash, role: role === "admin" ? "admin" : "sales" });
+      const user  = await User.create({ name, email, passwordHash, role: role === "admin" ? "admin" : "sales" });
       const token = await signToken({ sub: user._id.toString(), email: user.email, role: user.role, name: user.name });
       return created(res, { token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
     }
 
-    // ── AUTH: POST /api/auth/login ─────────────────────────────
     if (resource === "login" && req.method === "POST") {
       const ip = req.headers["x-forwarded-for"] || "unknown";
       if (isRateLimited(ip)) return res.status(429).json({ success: false, error: "Too many attempts. Try again in 60s." });
@@ -187,13 +176,11 @@ export default async function handler(req, res) {
       if (!email || !password) return badRequest(res, "email and password required.");
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) return unauthorized(res, "Invalid credentials.");
-      const match = await bcrypt.compare(password, user.passwordHash);
-      if (!match) return unauthorized(res, "Invalid credentials.");
+      if (!await bcrypt.compare(password, user.passwordHash)) return unauthorized(res, "Invalid credentials.");
       const token = await signToken({ sub: user._id.toString(), email: user.email, role: user.role, name: user.name });
       return ok(res, { token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
     }
 
-    // ── AUTH: GET /api/auth/me ─────────────────────────────────
     if (resource === "me" && req.method === "GET") {
       const payload = await authUser(req);
       if (!payload) return unauthorized(res);
@@ -202,7 +189,7 @@ export default async function handler(req, res) {
       return ok(res, { _id: user._id, name: user.name, email: user.email, role: user.role });
     }
 
-    // ── SEARCH: GET /api/search?q= ─────────────────────────────
+    // ── SEARCH ────────────────────────────────────────────────
     if (resource === "search" && req.method === "GET") {
       const payload = await authUser(req);
       if (!payload) return unauthorized(res);
@@ -210,16 +197,16 @@ export default async function handler(req, res) {
       if (!q) return ok(res, { docs: [], features: [], videos: [], resources: [], pricing: [] });
       const rx = new RegExp(q, "i");
       const [docs, features, videos, resources, pricing] = await Promise.all([
-        Documentation .find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
+        Documentation.find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
         FeatureRelease.find({ $or: [{ featureName: rx }, { description: rx }, { useCase: rx }] }).limit(10).lean(),
-        Video         .find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
-        Resource      .find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
-        PricingPlan   .find({ $or: [{ name: rx }, { icp: rx }] }).limit(10).lean(),
+        Video.find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
+        Resource.find({ $or: [{ title: rx }, { description: rx }, { category: rx }] }).limit(10).lean(),
+        PricingPlan.find({ $or: [{ name: rx }, { icp: rx }] }).limit(10).lean(),
       ]);
       return ok(res, { docs, features, videos, resources, pricing });
     }
 
-    // ── ENGAGEMENT: POST /api/engage ──────────────────────────
+    // ── ENGAGEMENT ────────────────────────────────────────────
     if (resource === "engage" && req.method === "POST") {
       const payload = await authUser(req);
       if (!payload) return unauthorized(res);
@@ -229,112 +216,58 @@ export default async function handler(req, res) {
       return ok(res, { tracked: true });
     }
 
-    // ── INTELLIGENCE: GET /api/intelligence ───────────────────
+    // ── INTELLIGENCE ──────────────────────────────────────────
     if (resource === "intelligence" && req.method === "GET") {
       const payload = await authUser(req);
       if (!payload) return unauthorized(res);
-
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
       const [topContent, recentEvents, featureMetrics, totalEvents, eventBreakdown] = await Promise.all([
-        EngagementEvent.aggregate([
-          { $match: { timestamp: { $gte: thirtyDaysAgo } } },
-          { $group: { _id: { contentType: "$contentType", contentId: "$contentId" }, count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-          { $limit: 20 },
-        ]),
+        EngagementEvent.aggregate([{ $match: { timestamp: { $gte: thirtyDaysAgo } } }, { $group: { _id: { contentType: "$contentType", contentId: "$contentId" }, count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 20 }]),
         EngagementEvent.find({}).sort({ timestamp: -1 }).limit(50).lean(),
         FeatureMetric.find({}).sort({ views: -1 }).lean(),
         EngagementEvent.countDocuments({}),
-        EngagementEvent.aggregate([
-          { $group: { _id: "$eventType", count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-        ]),
+        EngagementEvent.aggregate([{ $group: { _id: "$eventType", count: { $sum: 1 } } }, { $sort: { count: -1 } }]),
       ]);
-
-      // Group top content IDs by type
       const byType = { docs: [], video: [], feature: [], resource: [], pricing: [] };
-      topContent.forEach(item => {
-        const t = item._id.contentType;
-        if (byType[t]) byType[t].push({ contentId: item._id.contentId, count: item.count });
-      });
-
-      // Resolve IDs → human-readable names via batch lookups
-      const safeIds = (arr) => {
-        return arr.map(i => i.contentId).filter(id => {
-          try { new mongoose.Types.ObjectId(id); return true; } catch { return false; }
-        }).map(id => new mongoose.Types.ObjectId(id));
-      };
-
-      const [docDocs, videoDocs, featDocs, resDocs, planDocs] = await Promise.all([
-        byType.docs.length    ? Documentation .find({ _id: { $in: safeIds(byType.docs) } },    { title: 1 }).lean() : [],
-        byType.video.length   ? Video         .find({ _id: { $in: safeIds(byType.video) } },   { title: 1 }).lean() : [],
+      topContent.forEach(item => { const t = item._id.contentType; if (byType[t]) byType[t].push({ contentId: item._id.contentId, count: item.count }); });
+      const safeIds = arr => arr.map(i => i.contentId).filter(cid => { try { new mongoose.Types.ObjectId(cid); return true; } catch { return false; } }).map(cid => new mongoose.Types.ObjectId(cid));
+      const [dD, vD, fD, rD, pD] = await Promise.all([
+        byType.docs.length    ? Documentation.find({ _id: { $in: safeIds(byType.docs) } }, { title: 1 }).lean() : [],
+        byType.video.length   ? Video.find({ _id: { $in: safeIds(byType.video) } }, { title: 1 }).lean() : [],
         byType.feature.length ? FeatureRelease.find({ _id: { $in: safeIds(byType.feature) } }, { featureName: 1 }).lean() : [],
-        byType.resource.length? Resource      .find({ _id: { $in: safeIds(byType.resource) } },{ title: 1 }).lean() : [],
-        byType.pricing.length ? PricingPlan   .find({ _id: { $in: safeIds(byType.pricing) } }, { name: 1 }).lean() : [],
+        byType.resource.length? Resource.find({ _id: { $in: safeIds(byType.resource) } }, { title: 1 }).lean() : [],
+        byType.pricing.length ? PricingPlan.find({ _id: { $in: safeIds(byType.pricing) } }, { name: 1 }).lean() : [],
       ]);
-
-      // Build ID → name maps
-      const nameMap = {};
-      docDocs  .forEach(d => { nameMap[d._id.toString()] = d.title; });
-      videoDocs.forEach(d => { nameMap[d._id.toString()] = d.title; });
-      featDocs .forEach(d => { nameMap[d._id.toString()] = d.featureName; });
-      resDocs  .forEach(d => { nameMap[d._id.toString()] = d.title; });
-      planDocs .forEach(d => { nameMap[d._id.toString()] = d.name; });
-
-      // Attach names to top content
-      Object.keys(byType).forEach(type => {
-        byType[type] = byType[type].map(item => ({
-          ...item,
-          contentName: nameMap[item.contentId] || item.contentId,
-        }));
-      });
-
-      // Enrich recent events with content names
-      const enrichedEvents = recentEvents.map(ev => ({
-        ...ev,
-        contentName: nameMap[ev.contentId] || null,
-      }));
-
-      return ok(res, { topContent: byType, recentEvents: enrichedEvents, featureMetrics, totalEvents, eventBreakdown });
+      const nm = {};
+      dD.forEach(d => { nm[d._id.toString()] = d.title; });
+      vD.forEach(d => { nm[d._id.toString()] = d.title; });
+      fD.forEach(d => { nm[d._id.toString()] = d.featureName; });
+      rD.forEach(d => { nm[d._id.toString()] = d.title; });
+      pD.forEach(d => { nm[d._id.toString()] = d.name; });
+      Object.keys(byType).forEach(t => { byType[t] = byType[t].map(item => ({ ...item, contentName: nm[item.contentId] || item.contentId })); });
+      return ok(res, { topContent: byType, recentEvents: recentEvents.map(ev => ({ ...ev, contentName: nm[ev.contentId] || null })), featureMetrics, totalEvents, eventBreakdown });
     }
 
-    // ── FEATURE METRICS ────────────────────────────────────────
+    // ── FEATURE METRICS ───────────────────────────────────────
     if (resource === "feature-metrics") {
       const payload = await authUser(req);
       if (!payload) return unauthorized(res);
-
-      if (req.method === "GET") {
-        const metrics = await FeatureMetric.find({}).sort({ views: -1 }).lean();
-        return ok(res, metrics);
-      }
-
-      const action = parts[parts.length - 2]; // view | mention | demo
+      if (req.method === "GET") return ok(res, await FeatureMetric.find({}).sort({ views: -1 }).lean());
+      const action = parts[parts.length - 2];
       const { featureId, featureName } = req.body || {};
       if (!featureId) return badRequest(res, "featureId required.");
-
       const inc = {};
       if (action === "view")    inc.views = 1;
       if (action === "mention") inc.mentions = 1;
-      if (action === "demo")    { inc.demoRequests = 1; }
-
+      if (action === "demo")    inc.demoRequests = 1;
       const metric = await FeatureMetric.findOneAndUpdate(
         { featureId },
         { $inc: inc, $set: { lastUpdated: new Date(), featureName: featureName || "" } },
         { upsert: true, new: true }
       );
-
-      // Also log engagement event
-      await EngagementEvent.create({
-        userId: payload.sub,
-        contentType: "feature",
-        contentId: featureId,
-        eventType: action === "view" ? "view" : action === "demo" ? "demo_request" : "mention",
-      });
-
+      await EngagementEvent.create({ userId: payload.sub, contentType: "feature", contentId: featureId, eventType: action === "view" ? "view" : action === "demo" ? "demo_request" : "mention" });
       return ok(res, metric);
     }
-
 
     // ── AI PLAYBOOK ───────────────────────────────────────────
     if (resource === "ai-playbook" && req.method === "POST") {
@@ -359,7 +292,7 @@ export default async function handler(req, res) {
         pricing.length  ? "PRICING:\n" + pricing.map(p => "- " + p.name + " at " + p.price + ". Best for: " + p.icp).join("\n") : "",
       ].filter(Boolean);
       const ctx = lines.join("\n\n") || "No specific context found.";
-      const system = `You are an expert internal sales assistant for DoubleTick, a WhatsApp Business API platform. Help sales reps with concise, practical answers. Use markdown formatting. Ground your answer in the knowledge base.\n\nKNOWLEDGE BASE:\n${ctx}`;
+      const system = "You are an expert internal sales assistant for DoubleTick, a WhatsApp Business API platform. Help sales reps with concise, practical answers. Use markdown formatting. Ground your answer in the knowledge base.\n\nKNOWLEDGE BASE:\n" + ctx;
       const answer = await callClaude(system, question);
       await AIQuery.create({ userId: payload.sub, question, response: answer, sources: { docs, features, videos, resources, pricing } });
       return ok(res, { answer, sources: { docs, features, videos, resources, pricing } });
@@ -381,11 +314,15 @@ export default async function handler(req, res) {
       if (!transcript?.trim()) return badRequest(res, "transcript is required.");
       const allFeatures = await FeatureRelease.find({}, { featureName: 1 }).lean();
       const featureList = allFeatures.map(f => f.featureName).join(", ");
-      const system = `You are a sales call intelligence analyzer for DoubleTick (WhatsApp Business API). Analyze the transcript and extract structured insights. Known product features: ${featureList}. Respond ONLY with valid JSON (no markdown, no backticks) in this exact format: {"featuresMentioned":[],"objections":[],"interests":[],"nextSteps":[]}`;
+      const system = "You are a sales call intelligence analyzer for DoubleTick (WhatsApp Business API). Analyze the transcript and extract structured insights. Known product features: " + featureList + ". Respond ONLY with valid JSON (no markdown, no backticks) in this exact format: {\"featuresMentioned\":[],\"objections\":[],\"interests\":[],\"nextSteps\":[]}";
       const raw = await callClaude(system, "Analyze this transcript:\n\n" + transcript);
       let parsed;
-      try { parsed = JSON.parse(raw.replace(/^[\s\S]*?\{/, "{").replace(/\}[\s\S]*$/, "}")); }
-      catch { parsed = { featuresMentioned: [], objections: [], interests: [], nextSteps: ["Could not parse response. Try again."] }; }
+      try {
+        const clean = raw.replace(/^[\s\S]*?\{/, "{").replace(/\}[\s\S]*$/, "}");
+        parsed = JSON.parse(clean);
+      } catch {
+        parsed = { featuresMentioned: [], objections: [], interests: [], nextSteps: ["Could not parse AI response. Please try again."] };
+      }
       await DealInsight.create({ userId: payload.sub, transcript, ...parsed });
       return ok(res, parsed);
     }
@@ -404,11 +341,9 @@ export default async function handler(req, res) {
       if (!payload) return unauthorized(res);
 
       if (req.method === "GET") {
-        // GET /api/relations?sourceType=feature&sourceId=xxx
         const { sourceType, sourceId } = req.query || {};
         if (!sourceType || !sourceId) return badRequest(res, "sourceType and sourceId required.");
         const relations = await ContentRelation.find({ sourceType, sourceId }).lean();
-        // Resolve target names
         const enriched = await Promise.all(relations.map(async rel => {
           let name = rel.targetId;
           try {
@@ -441,9 +376,11 @@ export default async function handler(req, res) {
         const deleted = await ContentRelation.findByIdAndDelete(id);
         return deleted ? noContent(res) : notFound(res, "Relation not found.");
       }
+
+      return notAllowed(res);
     }
 
-    // ── CRUD routes ────────────────────────────────────────────
+    // ── CRUD routes ───────────────────────────────────────────
     const route = CRUD_ROUTES[resource];
     if (!route) return res.status(404).json({ success: false, error: `Unknown route: ${resource}` });
 
@@ -487,5 +424,4 @@ export default async function handler(req, res) {
     return notAllowed(res);
 
   } catch (err) { return serverError(res, err); }
-}
-// This line intentionally left blank — new routes appended below via full rewrite
+                }
