@@ -44,6 +44,33 @@ const EngagementEvent = model("EngagementEvent", {
 });
 
 const FeatureMetric = model("FeatureMetric", {
+
+const AIQuery = model("AIQuery", {
+  userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  question:  { type: String, required: true },
+  response:  { type: String, default: "" },
+  sources:   { type: mongoose.Schema.Types.Mixed, default: {} },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const DealInsight = model("DealInsight", {
+  userId:            { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  transcript:        { type: String, required: true },
+  featuresMentioned: { type: [String], default: [] },
+  objections:        { type: [String], default: [] },
+  interests:         { type: [String], default: [] },
+  nextSteps:         { type: [String], default: [] },
+  createdAt:         { type: Date, default: Date.now },
+});
+
+const ContentRelation = model("ContentRelation", {
+  sourceType:   { type: String, required: true },
+  sourceId:     { type: String, required: true },
+  targetType:   { type: String, required: true },
+  targetId:     { type: String, required: true },
+  relationType: { type: String, default: "related" },
+});
+
   featureId:    { type: mongoose.Schema.Types.ObjectId, ref: "FeatureRelease", required: true, unique: true },
   featureName:  { type: String, default: "" },
   views:        { type: Number, default: 0 },
@@ -88,6 +115,21 @@ function isRateLimited(ip) {
   loginAttempts.set(ip, entry);
   return entry.count > 10;
 }
+
+// ── Anthropic LLM ─────────────────────────────────────────────
+async function callClaude(system, userMsg) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY not configured.");
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1024, system, messages: [{ role: "user", content: userMsg }] }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.error?.message || "Anthropic API error");
+  return d.content?.[0]?.text || "";
+}
+
 
 // ── Response helpers ──────────────────────────────────────────
 const ok          = (res, data)  => res.status(200).json({ success: true, data });
@@ -293,6 +335,114 @@ export default async function handler(req, res) {
       return ok(res, metric);
     }
 
+
+    // ── AI PLAYBOOK ───────────────────────────────────────────
+    if (resource === "ai-playbook" && req.method === "POST") {
+      const payload = await authUser(req);
+      if (!payload) return unauthorized(res);
+      const { question } = req.body || {};
+      if (!question?.trim()) return badRequest(res, "question is required.");
+      const words = question.split(" ").filter(w => w.length > 3).slice(0, 6);
+      const rx = words.length ? new RegExp(words.join("|"), "i") : new RegExp(question.slice(0, 20), "i");
+      const [docs, features, videos, resources, pricing] = await Promise.all([
+        Documentation.find({ $or: [{ title: rx }, { description: rx }] }).limit(4).lean(),
+        FeatureRelease.find({ $or: [{ featureName: rx }, { description: rx }, { useCase: rx }] }).limit(4).lean(),
+        Video.find({ $or: [{ title: rx }, { description: rx }] }).limit(3).lean(),
+        Resource.find({ $or: [{ title: rx }, { description: rx }] }).limit(3).lean(),
+        PricingPlan.find({ $or: [{ name: rx }, { icp: rx }, { description: rx }] }).limit(3).lean(),
+      ]);
+      const lines = [
+        docs.length     ? "DOCUMENTATION:\n" + docs.map(d => "- " + d.title + ": " + d.description).join("\n") : "",
+        features.length ? "FEATURES:\n" + features.map(f => "- " + f.featureName + " (" + f.releaseMonth + "): " + f.description + ". Use case: " + f.useCase).join("\n") : "",
+        videos.length   ? "VIDEOS:\n" + videos.map(v => "- " + v.title + ": " + v.description).join("\n") : "",
+        resources.length? "RESOURCES:\n" + resources.map(r => "- " + r.title + ": " + r.description).join("\n") : "",
+        pricing.length  ? "PRICING:\n" + pricing.map(p => "- " + p.name + " at " + p.price + ". Best for: " + p.icp).join("\n") : "",
+      ].filter(Boolean);
+      const ctx = lines.join("\n\n") || "No specific context found.";
+      const system = `You are an expert internal sales assistant for DoubleTick, a WhatsApp Business API platform. Help sales reps with concise, practical answers. Use markdown formatting. Ground your answer in the knowledge base.\n\nKNOWLEDGE BASE:\n${ctx}`;
+      const answer = await callClaude(system, question);
+      await AIQuery.create({ userId: payload.sub, question, response: answer, sources: { docs, features, videos, resources, pricing } });
+      return ok(res, { answer, sources: { docs, features, videos, resources, pricing } });
+    }
+
+    // ── AI QUERY HISTORY ──────────────────────────────────────
+    if (resource === "ai-queries" && req.method === "GET") {
+      const payload = await authUser(req);
+      if (!payload) return unauthorized(res);
+      const filter = payload.role === "admin" ? {} : { userId: payload.sub };
+      return ok(res, await AIQuery.find(filter).sort({ createdAt: -1 }).limit(50).lean());
+    }
+
+    // ── CALL INTELLIGENCE ─────────────────────────────────────
+    if (resource === "call-intelligence" && req.method === "POST") {
+      const payload = await authUser(req);
+      if (!payload) return unauthorized(res);
+      const { transcript } = req.body || {};
+      if (!transcript?.trim()) return badRequest(res, "transcript is required.");
+      const allFeatures = await FeatureRelease.find({}, { featureName: 1 }).lean();
+      const featureList = allFeatures.map(f => f.featureName).join(", ");
+      const system = `You are a sales call intelligence analyzer for DoubleTick (WhatsApp Business API). Analyze the transcript and extract structured insights. Known product features: ${featureList}. Respond ONLY with valid JSON (no markdown, no backticks) in this exact format: {"featuresMentioned":[],"objections":[],"interests":[],"nextSteps":[]}`;
+      const raw = await callClaude(system, "Analyze this transcript:\n\n" + transcript);
+      let parsed;
+      try { parsed = JSON.parse(raw.replace(/^[\s\S]*?\{/, "{").replace(/\}[\s\S]*$/, "}")); }
+      catch { parsed = { featuresMentioned: [], objections: [], interests: [], nextSteps: ["Could not parse response. Try again."] }; }
+      await DealInsight.create({ userId: payload.sub, transcript, ...parsed });
+      return ok(res, parsed);
+    }
+
+    // ── DEAL INSIGHTS HISTORY ─────────────────────────────────
+    if (resource === "deal-insights" && req.method === "GET") {
+      const payload = await authUser(req);
+      if (!payload) return unauthorized(res);
+      const filter = payload.role === "admin" ? {} : { userId: payload.sub };
+      return ok(res, await DealInsight.find(filter).sort({ createdAt: -1 }).limit(50).lean());
+    }
+
+    // ── CONTENT RELATIONS ─────────────────────────────────────
+    if (resource === "relations") {
+      const payload = await authUser(req);
+      if (!payload) return unauthorized(res);
+
+      if (req.method === "GET") {
+        // GET /api/relations?sourceType=feature&sourceId=xxx
+        const { sourceType, sourceId } = req.query || {};
+        if (!sourceType || !sourceId) return badRequest(res, "sourceType and sourceId required.");
+        const relations = await ContentRelation.find({ sourceType, sourceId }).lean();
+        // Resolve target names
+        const enriched = await Promise.all(relations.map(async rel => {
+          let name = rel.targetId;
+          try {
+            const oid = new mongoose.Types.ObjectId(rel.targetId);
+            const modelMap = { docs: Documentation, video: Video, feature: FeatureRelease, resource: Resource, pricing: PricingPlan };
+            const M = modelMap[rel.targetType];
+            if (M) {
+              const doc = await M.findById(oid).select("title featureName name").lean();
+              if (doc) name = doc.title || doc.featureName || doc.name || rel.targetId;
+            }
+          } catch {}
+          return { ...rel, targetName: name };
+        }));
+        return ok(res, enriched);
+      }
+
+      if (req.method === "POST") {
+        if (payload.role !== "admin") return forbidden(res);
+        const { sourceType, sourceId, targetType, targetId, relationType } = req.body || {};
+        if (!sourceType || !sourceId || !targetType || !targetId) return badRequest(res, "sourceType, sourceId, targetType, targetId required.");
+        const existing = await ContentRelation.findOne({ sourceType, sourceId, targetType, targetId });
+        if (existing) return badRequest(res, "Relation already exists.");
+        const rel = await ContentRelation.create({ sourceType, sourceId, targetType, targetId, relationType: relationType || "related" });
+        return created(res, rel);
+      }
+
+      if (req.method === "DELETE") {
+        if (payload.role !== "admin") return forbidden(res);
+        if (!id) return badRequest(res, "ID required.");
+        const deleted = await ContentRelation.findByIdAndDelete(id);
+        return deleted ? noContent(res) : notFound(res, "Relation not found.");
+      }
+    }
+
     // ── CRUD routes ────────────────────────────────────────────
     const route = CRUD_ROUTES[resource];
     if (!route) return res.status(404).json({ success: false, error: `Unknown route: ${resource}` });
@@ -338,3 +488,4 @@ export default async function handler(req, res) {
 
   } catch (err) { return serverError(res, err); }
 }
+// This line intentionally left blank — new routes appended below via full rewrite
