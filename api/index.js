@@ -108,8 +108,29 @@ function isRateLimited(ip) {
   return entry.count > 10;
 }
 
-// ── Anthropic LLM ─────────────────────────────────────────────
-async function callClaude(system, userMsg) {
+// ── LLM: Gemini (primary, free tier) ─────────────────────────
+async function callGemini(system, userMsg) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY not configured.");
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: userMsg }] }],
+        generationConfig: { maxOutputTokens: 1024, temperature: 0.4 },
+      }),
+    }
+  );
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.error?.message || "Gemini API error");
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+// ── LLM: Anthropic (fallback) ─────────────────────────────────
+async function callAnthropic(system, userMsg) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY not configured.");
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -120,6 +141,13 @@ async function callClaude(system, userMsg) {
   const d = await r.json();
   if (!r.ok) throw new Error(d?.error?.message || "Anthropic API error");
   return d.content?.[0]?.text || "";
+}
+
+// ── LLM router: Gemini first, Anthropic fallback ──────────────
+async function callClaude(system, userMsg) {
+  if (process.env.GEMINI_API_KEY) return callGemini(system, userMsg);
+  if (process.env.ANTHROPIC_API_KEY) return callAnthropic(system, userMsg);
+  throw new Error("No LLM API key configured. Set GEMINI_API_KEY or ANTHROPIC_API_KEY in Vercel environment variables.");
 }
 
 // ── Response helpers ──────────────────────────────────────────
@@ -424,4 +452,4 @@ export default async function handler(req, res) {
     return notAllowed(res);
 
   } catch (err) { return serverError(res, err); }
-                }
+                  }
