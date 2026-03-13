@@ -14,7 +14,7 @@ const STATIC_DOCS = [
     title: "DoubleTick for RM & Sales Teams",
     category: "Overview",
     description: "Complete product deck for Relationship Managers and Sales Teams — CX governance, key differentiators, features, bot studio, analytics, and case studies.",
-    fileUrl: "/public/DoubleTick for RM_ Sales Teams.pdf",
+    fileUrl: "/DoubleTick for RM_ Sales Teams.pdf",
     createdAt: new Date("2025-01-01").toISOString(),
     isStatic: true,
   },
