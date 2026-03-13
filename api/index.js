@@ -456,4 +456,4 @@ export default async function handler(req, res) {
     return notAllowed(res);
 
   } catch (err) { return serverError(res, err); }
-                                                   }
+  }
