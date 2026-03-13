@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Btn, Field, SectionHeader, EmptyState } from "../components/UI";
+import Modal from "../components/Modal";
 import Icon from "../components/Icon";
 import { ACCENT_COLORS } from "../data/defaultData";
 
