@@ -4,6 +4,7 @@ import Modal from "../components/Modal";
 import Icon from "../components/Icon";
 import { uploadFile } from "../utils/api";
 import { CATEGORY_COLORS } from "../data/defaultData";
+const rmSalesDeck = "/DoubleTick for RM_ Sales Teams.pdf";
 
 const CAT_OPTIONS = ["Overview", "Features", "Technical", "Use Cases", "Other"];
 
@@ -14,7 +15,7 @@ const STATIC_DOCS = [
     title: "DoubleTick for RM & Sales Teams",
     category: "Overview",
     description: "Complete product deck for Relationship Managers and Sales Teams — CX governance, key differentiators, features, bot studio, analytics, and case studies.",
-    fileUrl: "/DoubleTick for RM_ Sales Teams.pdf",
+    fileUrl: rmSalesDeck,
     createdAt: new Date("2025-01-01").toISOString(),
     isStatic: true,
   },
