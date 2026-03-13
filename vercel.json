@@ -4,9 +4,41 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/auth/:path*",            "destination": "/api/index" },
-    { "source": "/api/feature-metrics/:path*", "destination": "/api/index" },
-    { "source": "/api/:resource",              "destination": "/api/index" },
-    { "source": "/((?!api).*)",                "destination": "/index.html" }
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/feature-metrics/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/ai-playbook",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/ai-queries",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/call-intelligence",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/deal-insights",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/relations",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/:resource",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
   ]
 }
