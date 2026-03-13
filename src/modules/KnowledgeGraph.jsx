@@ -162,7 +162,7 @@ export default function KnowledgeGraph({ isAdmin }) {
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"300px 1fr", gap:24, alignItems:"start" }}>
+      <div className="grid-sidebar">
 
         {/* Left: Source selector */}
         <div style={{ background:"var(--border)", border:"1px solid var(--border2)", borderRadius:14, padding:"18px" }}>
@@ -231,7 +231,7 @@ export default function KnowledgeGraph({ isAdmin }) {
           {showAddForm && isAdmin && (
             <div style={{ padding:"18px 20px", background:"var(--border)", border:"1px solid var(--accent)30", borderRadius:12, marginBottom:16 }}>
               <div style={{ fontSize:12, fontWeight:700, color:"var(--accent)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:14 }}>Link New Content</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:12 }}>
+              <div className="grid-3form" style={{ marginBottom:12 }}>
                 <div>
                   <div style={{ fontSize:11.5, color:"var(--text-dim)", marginBottom:5, fontWeight:600 }}>Target Type</div>
                   <select value={addTargetType} onChange={e => { setAddTargetType(e.target.value); setAddTargetId(""); }} style={selectStyle}>
@@ -305,4 +305,4 @@ export default function KnowledgeGraph({ isAdmin }) {
       </div>
     </div>
   );
-}
+                                                                                     }
