@@ -122,8 +122,11 @@ export default function AIPlaybook() {
       const { answer, sources } = await askPlaybook(question);
       setMessages(prev => [...prev, { role:"assistant", text: answer, sources }]);
     } catch (e) {
-      setError(e.message);
-      setMessages(prev => [...prev, { role:"error", text: e.message }]);
+      const msg = e.message?.includes("429") || e.message?.toLowerCase().includes("quota") || e.message?.toLowerCase().includes("rate")
+        ? "Rate limit reached. Please wait 30 seconds and try again."
+        : e.message;
+      setError(msg);
+      setMessages(prev => [...prev, { role:"error", text: msg }]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -252,4 +255,4 @@ export default function AIPlaybook() {
       `}</style>
     </div>
   );
-                    }
+}
