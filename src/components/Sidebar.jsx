@@ -53,7 +53,7 @@ function SectionLabel({ label }) {
   );
 }
 
-export default function Sidebar({ active, onNav, onSearch }) {
+export default function Sidebar({ active, onNav, onSearch, isOpen, onClose }) {
   const { user, logout, isAdmin } = useAuth();
   const [searchVal, setSearchVal] = useState("");
 
@@ -63,16 +63,25 @@ export default function Sidebar({ active, onNav, onSearch }) {
   }
 
   return (
-    <aside style={{ width:220, minHeight:"100vh", background:"#0c0c0f", borderRight:"1px solid var(--border)", display:"flex", flexDirection:"column", flexShrink:0 }}>
-      <div style={{ padding:"22px 16px 16px" }}>
+    <aside className={"sidebar" + (isOpen ? " open" : "")}
+      style={{ width:220, minHeight:"100vh", background:"#0c0c0f", borderRight:"1px solid var(--border)", display:"flex", flexDirection:"column", flexShrink:0 }}
+    >
+      {/* Logo row with close button on mobile */}
+      <div style={{ padding:"20px 16px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:9 }}>
           <div style={{ width:28, height:28, borderRadius:8, background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <Icon name="zap" size={14} color="#09090b" />
           </div>
           <span style={{ fontFamily:"Syne, sans-serif", fontWeight:700, fontSize:15, color:"var(--text)" }}>DoubleTick</span>
         </div>
+        {/* Close button — only visible on mobile via CSS */}
+        <button onClick={onClose} className="sidebar-close-btn"
+          style={{ width:28, height:28, borderRadius:7, background:"var(--border)", border:"1px solid var(--border2)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"var(--text-muted)" }}>
+          <Icon name="close" size={13} color="currentColor" />
+        </button>
       </div>
 
+      {/* Search */}
       <div style={{ padding:"0 10px 12px" }}>
         <form onSubmit={handleSearchSubmit} style={{ position:"relative", display:"flex" }}>
           <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}>
@@ -87,6 +96,7 @@ export default function Sidebar({ active, onNav, onSearch }) {
         </form>
       </div>
 
+      {/* Nav */}
       <nav style={{ flex:1, overflowY:"auto", padding:"0 8px" }}>
         <SectionLabel label="Knowledge" />
         {NAV_ITEMS.map(item => <NavItem key={item.id} item={item} active={active} onClick={onNav} />)}
@@ -102,6 +112,7 @@ export default function Sidebar({ active, onNav, onSearch }) {
         )}
       </nav>
 
+      {/* User footer */}
       <div style={{ padding:"12px 10px 16px", borderTop:"1px solid var(--border)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9 }}>
           <div style={{ width:28, height:28, borderRadius:"50%", background:"rgba(232,255,0,0.12)", border:"1px solid rgba(232,255,0,0.25)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
