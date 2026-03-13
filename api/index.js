@@ -194,36 +194,67 @@ export default async function handler(req, res) {
 
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      const [topContent, recentEvents, featureMetrics, totalEvents] = await Promise.all([
-        // Top content by engagement in last 30 days
+      const [topContent, recentEvents, featureMetrics, totalEvents, eventBreakdown] = await Promise.all([
         EngagementEvent.aggregate([
           { $match: { timestamp: { $gte: thirtyDaysAgo } } },
           { $group: { _id: { contentType: "$contentType", contentId: "$contentId" }, count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 20 },
         ]),
-        // Recent events
         EngagementEvent.find({}).sort({ timestamp: -1 }).limit(50).lean(),
-        // Feature metrics
         FeatureMetric.find({}).sort({ views: -1 }).lean(),
-        // Total event count
         EngagementEvent.countDocuments({}),
+        EngagementEvent.aggregate([
+          { $group: { _id: "$eventType", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
       ]);
 
-      // Group top content by type
+      // Group top content IDs by type
       const byType = { docs: [], video: [], feature: [], resource: [], pricing: [] };
       topContent.forEach(item => {
         const t = item._id.contentType;
         if (byType[t]) byType[t].push({ contentId: item._id.contentId, count: item.count });
       });
 
-      // Event type breakdown
-      const eventBreakdown = await EngagementEvent.aggregate([
-        { $group: { _id: "$eventType", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
+      // Resolve IDs → human-readable names via batch lookups
+      const safeIds = (arr) => {
+        return arr.map(i => i.contentId).filter(id => {
+          try { new mongoose.Types.ObjectId(id); return true; } catch { return false; }
+        }).map(id => new mongoose.Types.ObjectId(id));
+      };
+
+      const [docDocs, videoDocs, featDocs, resDocs, planDocs] = await Promise.all([
+        byType.docs.length    ? Documentation .find({ _id: { $in: safeIds(byType.docs) } },    { title: 1 }).lean() : [],
+        byType.video.length   ? Video         .find({ _id: { $in: safeIds(byType.video) } },   { title: 1 }).lean() : [],
+        byType.feature.length ? FeatureRelease.find({ _id: { $in: safeIds(byType.feature) } }, { featureName: 1 }).lean() : [],
+        byType.resource.length? Resource      .find({ _id: { $in: safeIds(byType.resource) } },{ title: 1 }).lean() : [],
+        byType.pricing.length ? PricingPlan   .find({ _id: { $in: safeIds(byType.pricing) } }, { name: 1 }).lean() : [],
       ]);
 
-      return ok(res, { topContent: byType, recentEvents, featureMetrics, totalEvents, eventBreakdown });
+      // Build ID → name maps
+      const nameMap = {};
+      docDocs  .forEach(d => { nameMap[d._id.toString()] = d.title; });
+      videoDocs.forEach(d => { nameMap[d._id.toString()] = d.title; });
+      featDocs .forEach(d => { nameMap[d._id.toString()] = d.featureName; });
+      resDocs  .forEach(d => { nameMap[d._id.toString()] = d.title; });
+      planDocs .forEach(d => { nameMap[d._id.toString()] = d.name; });
+
+      // Attach names to top content
+      Object.keys(byType).forEach(type => {
+        byType[type] = byType[type].map(item => ({
+          ...item,
+          contentName: nameMap[item.contentId] || item.contentId,
+        }));
+      });
+
+      // Enrich recent events with content names
+      const enrichedEvents = recentEvents.map(ev => ({
+        ...ev,
+        contentName: nameMap[ev.contentId] || null,
+      }));
+
+      return ok(res, { topContent: byType, recentEvents: enrichedEvents, featureMetrics, totalEvents, eventBreakdown });
     }
 
     // ── FEATURE METRICS ────────────────────────────────────────
