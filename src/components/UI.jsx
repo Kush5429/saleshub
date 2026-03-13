@@ -118,22 +118,22 @@ export function SectionHeader({ title, subtitle, action }) {
 /* ─── STAT CARD ──────────────────────────────────── */
 export function StatCard({ label, value, icon, accent = "var(--accent)" }) {
   return (
-    <Card style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px" }}>
+    <Card style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px 22px" }}>
       <div style={{
-        width: 38, height: 38, borderRadius: "var(--radius-md)",
-        background: accent + "10", border: `1px solid ${accent}20`,
+        width: 46, height: 46, borderRadius: "var(--radius-md)",
+        background: accent + "12", border: `1px solid ${accent}25`,
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       }}>
-        <Icon name={icon} size={16} color={accent} />
+        <Icon name={icon} size={20} color={accent} />
       </div>
       <div>
         <div style={{
-          color: "var(--text)", fontSize: 26, fontWeight: 700,
-          fontFamily: "var(--font-display)", lineHeight: 1, letterSpacing: "-0.03em",
+          color: "var(--text)", fontSize: 34, fontWeight: 800,
+          fontFamily: "var(--font-display)", lineHeight: 1, letterSpacing: "-0.04em",
         }}>{value}</div>
         <div style={{
-          color: "var(--text-muted)", fontSize: 11, marginTop: 3,
-          textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 500,
+          color: "var(--text-muted)", fontSize: 12, marginTop: 4,
+          textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600,
         }}>{label}</div>
       </div>
     </Card>
