@@ -53,13 +53,13 @@ export default function IntelligenceDashboard() {
       />
 
       {/* Top-line stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 28 }}>
+      <div className="grid-cols-3" style={{ marginBottom: 28 }}>
         <StatCard label="Total Engagements"   value={totalEvents}                               icon="zap"      accent="var(--accent)" />
         <StatCard label="Features Tracked"    value={featureMetrics?.length || 0}               icon="features" accent="var(--accent-pink)" />
         <StatCard label="Recent Events (50)"  value={recentEvents?.length || 0}                 icon="tag"      accent="var(--accent-blue)" />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div className="grid-2col" style={{ marginBottom: 24 }}>
 
         {/* Top Content by Type */}
         {Object.entries(topContent || {}).map(([type, items]) => {
@@ -80,7 +80,7 @@ export default function IntelligenceDashboard() {
         })}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div className="grid-2col" style={{ marginBottom: 24 }}>
 
         {/* Event Type Breakdown */}
         <Card style={{ padding: "18px 20px" }}>
