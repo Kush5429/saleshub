@@ -86,7 +86,7 @@ export default function CallIntelligence() {
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns: hasResult ? "1fr 1fr" : "1fr", gap:24, alignItems:"start" }}>
+      <div className="grid-2col">
 
         {/* Input panel */}
         <div>
