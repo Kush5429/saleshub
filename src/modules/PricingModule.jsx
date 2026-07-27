@@ -5,40 +5,66 @@ import Icon from "../components/Icon";
 import { ACCENT_COLORS } from "../data/defaultData";
 import { trackView } from "../utils/engage";
 
-function PlanCard({ plan, accent, adminMode, onRemove, onEdit }) {
+/* Split "₹8,300/mo" -> { amount:"₹8,300", period:"/mo" }; "₹80,000 one-time" -> whole as amount */
+function splitPrice(price = "") {
+  const i = price.indexOf("/");
+  if (i === -1) return { amount: price, period: "" };
+  return { amount: price.slice(0, i).trim(), period: price.slice(i) };
+}
+
+function PlanCard({ plan, accent, featured = false, adminMode, onRemove, onEdit }) {
   const featureList = Array.isArray(plan.features)
     ? plan.features
     : (plan.features ?? "").split(",").map(f => f.trim()).filter(Boolean);
+  const { amount, period } = splitPrice(plan.price);
 
   return (
     <div
       style={{
-        background:"var(--surface)", border:"1px solid var(--border)",
-        borderRadius:"var(--radius-xl)", padding:"28px 24px",
-        position:"relative", overflow:"hidden",
-        display:"flex", flexDirection:"column", transition:"all 0.2s",
+        background: featured
+          ? `linear-gradient(180deg, ${accent}0d, var(--surface) 55%)`
+          : "var(--surface)",
+        border: featured ? `1px solid ${accent}55` : "1px solid var(--border)",
+        borderRadius: "var(--radius-xl)",
+        padding: "26px 24px",
+        position: "relative", overflow: "hidden",
+        display: "flex", flexDirection: "column",
+        transition: "all 0.2s",
+        boxShadow: featured ? `0 0 0 1px ${accent}22, var(--shadow)` : "none",
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = accent+"60"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = accent + "66"; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${accent}14`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = featured ? accent + "55" : "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = featured ? `0 0 0 1px ${accent}22, var(--shadow)` : "none"; }}
     >
       {/* Top accent bar */}
-      <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${accent}, ${accent}60)` }} />
+      <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${accent}, ${accent}55)` }} />
 
       {/* Glow */}
-      <div style={{ position:"absolute", top:-40, right:-40, width:120, height:120, background:accent, borderRadius:"50%", opacity:0.04, filter:"blur(40px)", pointerEvents:"none" }} />
+      <div style={{ position:"absolute", top:-50, right:-40, width:150, height:150, background:accent, borderRadius:"50%", opacity:featured?0.09:0.05, filter:"blur(44px)", pointerEvents:"none" }} />
 
-      <div style={{ marginBottom:20 }}>
-        <div style={{ color:accent, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:8 }}>Plan</div>
-        <div style={{ color:"var(--text)", fontSize:22, fontWeight:800, fontFamily:"var(--font-display)", letterSpacing:"-0.03em", marginBottom:6 }}>{plan.name}</div>
-        <div style={{ color:accent, fontSize:30, fontWeight:800, fontFamily:"var(--font-display)", letterSpacing:"-0.04em", lineHeight:1 }}>{plan.price}</div>
+      {/* Popular pill */}
+      {featured && (
+        <div style={{ position:"absolute", top:16, right:16, background:accent, color:"#0a0a0c", fontSize:9.5, fontWeight:800, letterSpacing:"0.08em", padding:"4px 9px", borderRadius:99, textTransform:"uppercase" }}>
+          Most Popular
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ marginBottom:18 }}>
+        <div style={{ color:accent, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:9 }}>Plan</div>
+        <div style={{ color:"var(--text)", fontSize:22, fontWeight:800, fontFamily:"var(--font-display)", letterSpacing:"-0.03em", marginBottom:10 }}>{plan.name}</div>
+        <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+          <span style={{ color:accent, fontSize:32, fontWeight:800, fontFamily:"var(--font-display)", letterSpacing:"-0.04em", lineHeight:1 }}>{amount}</span>
+          {period && <span style={{ color:"var(--text-muted)", fontSize:14, fontWeight:600 }}>{period}</span>}
+        </div>
       </div>
 
-      <div style={{ height:1, background:"var(--border)", marginBottom:20 }} />
+      <div style={{ height:1, background:"var(--border)", marginBottom:18 }} />
 
-      <div style={{ flex:1, marginBottom:20 }}>
+      {/* Features */}
+      <div style={{ flex:1, marginBottom:18 }}>
         {featureList.map((f, i) => (
-          <div key={i} style={{ display:"flex", gap:10, marginBottom:10, alignItems:"flex-start" }}>
-            <div style={{ width:16, height:16, borderRadius:"50%", flexShrink:0, marginTop:2, background:accent+"15", border:`1px solid ${accent}30`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div key={i} style={{ display:"flex", gap:10, marginBottom:11, alignItems:"flex-start" }}>
+            <div style={{ width:17, height:17, borderRadius:"50%", flexShrink:0, marginTop:1, background:accent+"1a", border:`1px solid ${accent}33`, display:"flex", alignItems:"center", justifyContent:"center" }}>
               <Icon name="check" size={9} color={accent} />
             </div>
             <span style={{ color:"var(--text-muted)", fontSize:13.5, lineHeight:1.55, letterSpacing:"-0.01em" }}>{f}</span>
@@ -46,14 +72,21 @@ function PlanCard({ plan, accent, adminMode, onRemove, onEdit }) {
         ))}
       </div>
 
+      {/* Best for */}
       {plan.icp && (
-        <div style={{ background:"var(--surface2)", borderRadius:"var(--radius-sm)", padding:"12px 14px", marginBottom:12, borderLeft:`3px solid ${accent}50` }}>
+        <div style={{ background:"var(--surface2)", borderRadius:"var(--radius-sm)", padding:"12px 14px", marginBottom:12, borderLeft:`3px solid ${accent}55` }}>
           <div style={{ color:"var(--text-dim)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Best for</div>
           <div style={{ color:"var(--text-muted)", fontSize:13, lineHeight:1.55 }}>{plan.icp}</div>
         </div>
       )}
 
-      {plan.limits && <div style={{ color:"var(--text-dim)", fontSize:12, marginBottom:10 }}>{plan.limits}</div>}
+      {/* Limits chip */}
+      {plan.limits && (
+        <div style={{ display:"inline-flex", alignItems:"center", gap:7, alignSelf:"flex-start", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:99, padding:"5px 12px", marginBottom:adminMode?12:0 }}>
+          <Icon name="tag" size={11} color="var(--text-dim)" />
+          <span style={{ color:"var(--text-muted)", fontSize:11.5, letterSpacing:"-0.01em" }}>{plan.limits}</span>
+        </div>
+      )}
 
       {adminMode && (
         <div style={{ marginTop:8, display:"flex", gap:8 }}>
@@ -107,10 +140,11 @@ export default function PricingModule({ data: plans = [], loading, error, create
 
       {dtPlans.length > 0 && (
         <>
-          <SectionLabel dot="var(--accent)" label="DoubleTick Plans" />
-          <div className="grid-cols-3" style={{ marginBottom:40 }}>
+          <SectionLabel dot="var(--accent)" label="DoubleTick Plans" count={dtPlans.length} />
+          <div className="grid-cols-3" style={{ marginBottom:40, alignItems:"stretch" }}>
             {dtPlans.map((plan, i) => (
               <PlanCard key={plan._id} plan={plan} accent={ACCENT_COLORS[i % ACCENT_COLORS.length]}
+                featured={plan.name === "Pro"}
                 adminMode={adminMode} onRemove={() => remove(plan._id)} onEdit={() => openEdit(plan)} />
             ))}
           </div>
@@ -119,10 +153,11 @@ export default function PricingModule({ data: plans = [], loading, error, create
 
       {qsPlans.length > 0 && (
         <>
-          <SectionLabel dot="var(--accent-blue)" label="QuickSell Plans" />
-          <div className="grid-cols-3" style={{ marginBottom:40 }}>
+          <SectionLabel dot="var(--accent-blue)" label="QuickSell Plans" count={qsPlans.length} />
+          <div className="grid-cols-3" style={{ marginBottom:40, alignItems:"stretch" }}>
             {qsPlans.map((plan, i) => (
               <PlanCard key={plan._id} plan={plan} accent={ACCENT_COLORS[(i+3) % ACCENT_COLORS.length]}
+                featured={plan.name === "QuickSell Platinum"}
                 adminMode={adminMode} onRemove={() => remove(plan._id)} onEdit={() => openEdit(plan)} />
             ))}
           </div>
@@ -132,17 +167,21 @@ export default function PricingModule({ data: plans = [], loading, error, create
       {!loading && plans.length === 0 && <EmptyState icon="pricing" message="No pricing plans yet." />}
 
       {/* WhatsApp Conversation Costs */}
-      <div style={{ padding:"20px 24px", background:"var(--surface2)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", borderLeft:"3px solid var(--accent-blue)" }}>
-        <div style={{ color:"var(--text)", fontWeight:700, fontSize:15, marginBottom:16 }}>💬 WhatsApp Conversation Costs (INR)</div>
+      <div style={{ padding:"22px 24px", background:"linear-gradient(180deg, var(--surface2), var(--surface))", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", borderLeft:"3px solid var(--accent-blue)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:16 }}>
+          <span style={{ fontSize:17 }}>💬</span>
+          <div style={{ color:"var(--text)", fontWeight:700, fontSize:15 }}>WhatsApp Conversation Costs <span style={{ color:"var(--text-dim)", fontWeight:500, fontSize:12 }}>(INR · per conversation)</span></div>
+        </div>
         <div className="grid-cols-4">
-          {[{label:"Marketing",price:"₹0.87"},{label:"Utility",price:"₹0.13"},{label:"Service",price:"₹0.35"},{label:"Authentication",price:"₹0.35"}].map(c => (
-            <div key={c.label} style={{ textAlign:"center", padding:"14px 10px", background:"var(--surface)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border)" }}>
-              <div style={{ color:"var(--accent-blue)", fontWeight:700, fontSize:20, fontFamily:"var(--font-display)", letterSpacing:"-0.02em" }}>{c.price}</div>
-              <div style={{ color:"var(--text-dim)", fontSize:11, marginTop:4, textTransform:"uppercase", letterSpacing:"0.06em" }}>{c.label}</div>
+          {[{label:"Marketing",price:"₹0.87",c:"var(--accent-pink)"},{label:"Utility",price:"₹0.13",c:"var(--accent-green)"},{label:"Service",price:"₹0.35",c:"var(--accent-blue)"},{label:"Authentication",price:"₹0.35",c:"var(--accent-orange)"}].map(cc => (
+            <div key={cc.label} style={{ textAlign:"center", padding:"16px 10px", background:"var(--surface)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border)", position:"relative", overflow:"hidden" }}>
+              <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:cc.c, opacity:0.7 }} />
+              <div style={{ color:cc.c, fontWeight:800, fontSize:22, fontFamily:"var(--font-display)", letterSpacing:"-0.02em" }}>{cc.price}</div>
+              <div style={{ color:"var(--text-dim)", fontSize:10.5, marginTop:5, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600 }}>{cc.label}</div>
             </div>
           ))}
         </div>
-        <div style={{ color:"var(--text-dim)", fontSize:12, marginTop:12 }}>Per conversation · Full international rates at{" "}
+        <div style={{ color:"var(--text-dim)", fontSize:12, marginTop:14 }}>Full international rates at{" "}
           <a href="https://doubletick.io/conversation-cost" target="_blank" rel="noopener noreferrer" style={{ color:"var(--accent-blue)" }}>doubletick.io/conversation-cost</a>
         </div>
       </div>
@@ -164,11 +203,12 @@ export default function PricingModule({ data: plans = [], loading, error, create
   );
 }
 
-function SectionLabel({ dot, label }) {
+function SectionLabel({ dot, label, count }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
       <div style={{ width:6, height:6, borderRadius:"50%", background:dot }} />
       <span style={{ color:"var(--text-muted)", fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.1em" }}>{label}</span>
+      {count != null && <span style={{ color:"var(--text-dim)", fontSize:11, fontWeight:600 }}>{count}</span>}
       <div style={{ flex:1, height:1, background:"var(--border)" }} />
     </div>
   );
