@@ -30,7 +30,7 @@ export function Btn({ onClick, children, variant="primary", small=false, style={
   );
 }
 
-/* ─── BADGE ──────────────────────────────────────── */
+/* ─── BADGE ─────────────────────────────────────── */
 export function Badge({ text, color = "var(--accent)" }) {
   return (
     <span style={{
@@ -49,7 +49,7 @@ export function Badge({ text, color = "var(--accent)" }) {
   );
 }
 
-/* ─── CARD ───────────────────────────────────────── */
+/* ─── CARD ──────────────────────────────────────── */
 export function Card({ children, style = {}, className = "", onClick }) {
   return (
     <div
@@ -60,11 +60,11 @@ export function Card({ children, style = {}, className = "", onClick }) {
         border: "1px solid var(--border)",
         borderRadius: "var(--radius-lg)",
         padding: 20,
-        transition: "border-color 0.2s, box-shadow 0.2s",
+        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
         ...style,
       }}
-      onMouseEnter={onClick ? e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.boxShadow = "var(--shadow)"; } : undefined}
-      onMouseLeave={onClick ? e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; } : undefined}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.boxShadow = "var(--shadow)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
     >{children}</div>
   );
 }
@@ -140,7 +140,7 @@ export function StatCard({ label, value, icon, accent = "var(--accent)" }) {
   );
 }
 
-/* ─── EMPTY STATE ────────────────────────────────── */
+/* ─── EMPTY STATE ───────────────────────────────── */
 export function EmptyState({ icon, message }) {
   return (
     <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-dim)" }}>
