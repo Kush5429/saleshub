@@ -113,10 +113,10 @@ export default function FeatureRegistry({ data: features = [], loading, error, c
                 <div key={feat._id} style={{
                   background:"var(--surface)", border:"1px solid var(--border)",
                   borderRadius:"var(--radius-xl)", overflow:"hidden",
-                  display:"flex", transition:"all 0.2s",
+                  display:"flex", transition:"border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = accent+"50"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = accent+"55"; e.currentTarget.style.boxShadow = `0 10px 34px ${accent}12`; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
                 >
                   {/* Left accent strip + illustration */}
                   <div style={{ width:100, flexShrink:0, background:accent+"08", borderRight:`1px solid ${accent}18`, display:"flex", alignItems:"center", justifyContent:"center", padding:16, position:"relative" }}>
