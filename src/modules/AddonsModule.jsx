@@ -80,10 +80,11 @@ export default function AddonsModule({ data: addons = [], loading, error, create
                 const planList = plans.split(",").map(p => p.trim()).filter(Boolean);
                 return (
                   <div key={addon._id}
-                    style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-md)", padding:"18px 22px", display:"flex", alignItems:"center", gap:16, transition:"all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor="var(--border2)"; trackView("resource", addon._id); }}
-                    onMouseLeave={e => e.currentTarget.style.borderColor="var(--border)"}
+                    style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-md)", padding:"18px 22px 18px 24px", display:"flex", alignItems:"center", gap:16, position:"relative", overflow:"hidden", transition:"border-color 0.18s, box-shadow 0.18s, transform 0.18s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor=accent+"55"; e.currentTarget.style.boxShadow=`0 8px 28px ${accent}12`; e.currentTarget.style.transform="translateY(-2px)"; trackView("resource", addon._id); }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor="var(--border)"; e.currentTarget.style.boxShadow="none"; e.currentTarget.style.transform="translateY(0)"; }}
                   >
+                    <div style={{ position:"absolute", left:0, top:0, bottom:0, width:3, background:accent, opacity:0.85 }} />
                     <div style={{ width:42, height:42, borderRadius:"var(--radius-sm)", flexShrink:0, background:accent+"10", border:`1px solid ${accent}22`, display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <Icon name="addons" size={16} color={accent} />
                     </div>
